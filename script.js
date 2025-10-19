@@ -277,8 +277,6 @@ fileInput.addEventListener('change', (event) => {
                 // Set initial state: This is the ONLY time originalRowCount should be set (outside createNewTable).
                 originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
                 
-                // Ensure all rows rendered from file DO NOT have the 'new-row' class. (Handled in renderTable now)
-
                 updateReport();
                 showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
             } catch (err) {
@@ -382,6 +380,7 @@ function createNewTable(cols, rows) {
 
 function addRow() {
     const table = spreadsheetContainer.querySelector('table');
+    // FIX: Ensure table element exists before proceeding
     if (!table) return showStatus('يجب إنشاء أو تحميل جدول أولاً.', 'error');
     
     const columnCount = table.querySelector('thead tr').children.length;
@@ -447,7 +446,7 @@ function performRowKeeping(keyword) {
     if (numChanged > 0) {
         showStatus(`تم حذف ${numChanged} سطور (تم الإبقاء على المطابقة فقط).`, 'success');
     } else {
-        showStatus(`لم يتم العثور على سطور غير مطابقة للحذف.`, 'info');
+        showStatus(`تم الإبقاء على جميع السطور المطابقة.`, 'info');
     }
 }
 
@@ -478,4 +477,3 @@ function updateActionCount(keyword, type) {
     }
 }
 
-                          
