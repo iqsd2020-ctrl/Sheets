@@ -1,6 +1,6 @@
 /**
- * Sheets Editor Application Logic (Arabic RTL)
- * Handles file loading (XLSX), table rendering, data manipulation, and PWA functions.
+ * Sheets Editor & Merger Application Logic (Arabic RTL)
+ * Handles single file loading, multi-file merging, table rendering, data manipulation, and PWA functions.
  * FINAL VERIFIED VERSION
  */
 
@@ -20,11 +20,14 @@ window.onload = () => {
 
 // --- Element Selections ---
 const fileInput = document.getElementById('fileInput');
+const fileInputLabel = document.getElementById('fileInputLabel');
+const mergeBtn = document.getElementById('mergeBtn');
 const fileNameInput = document.getElementById('fileNameInput');
 const statusMessage = document.getElementById('statusMessage');
 const spreadsheetContainer = document.getElementById('spreadsheet-container');
 const placeholder = document.getElementById('placeholder');
 const loaderOverlay = document.getElementById('loader-overlay');
+const loaderText = document.getElementById('loader-text');
 const optionsModal = document.getElementById('optionsModal');
 const newTableModal = document.getElementById('newTableModal');
 const deleteModal = document.getElementById('deleteModal');
@@ -40,12 +43,12 @@ const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
 const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
 // --- Global State Variables ---
-// originalRowCount: The number of data rows loaded from the file or created initially. This is the baseline.
 let originalRowCount = 0;
 let progressInterval = null;
+let selectedFiles = null; // To store files for merging
 
 
-// --- Theme Handling Functions ---
+// --- Theme Handling ---
 
 function initTheme() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -61,9 +64,10 @@ function initTheme() {
 }
 
 themeToggleBtn.addEventListener('click', function () {
-    themeToggleDarkIcon.classList.toggle('hidden');
-    themeToggleLightIcon.classList.toggle('hidden');
-    const isDark = document.documentElement.classList.toggle('dark');
+    document.documentElement.classList.toggle('dark');
+    const isDark = document.documentElement.classList.contains('dark');
+    themeToggleDarkIcon.classList.toggle('hidden', !isDark);
+    themeToggleLightIcon.classList.toggle('hidden', isDark);
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
 });
 
@@ -76,7 +80,6 @@ function toggleModal(modalElement, show) {
         lucide.createIcons();
     } else {
         modalElement.classList.add('hidden');
-        // Clear input fields and counter messages when closing
         modalElement.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
             input.value = '';
             if (input.dataset.type) {
@@ -86,137 +89,69 @@ function toggleModal(modalElement, show) {
     }
 }
 
-/**
- * Updates the disabled state of action buttons in the options modal based on data existence.
- * @param {boolean} hasData True if a table exists and contains data rows.
- */
 function updateModalButtonsState(hasData) {
     optionsModal.querySelectorAll('[data-action="add-row"], [data-action="open-delete-modal"], [data-action="open-keep-modal"], [data-action="clear-table"]').forEach(btn => btn.disabled = !hasData);
 }
 
-// Global click listener for actions and modal closures
 document.addEventListener('click', (e) => {
     const target = e.target.closest('[data-action]');
-    const action = target?.dataset.action;
-    if (!action) return;
-
-    // This check is the gatekeeper for actions, ensuring data exists.
+    if (!target) return;
+    const action = target.dataset.action;
+    
     const hasDataRows = !!spreadsheetContainer.querySelector('tbody')?.children.length;
 
     const actions = {
-        'open-options': () => {
-            toggleModal(optionsModal, true);
-            // Crucial: Update button state every time the options modal is opened
-            updateModalButtonsState(hasDataRows);
-        },
+        'open-options': () => { toggleModal(optionsModal, true); updateModalButtonsState(hasDataRows); },
         'open-new-table-modal': () => { toggleModal(optionsModal, false); toggleModal(newTableModal, true); },
-        'open-delete-modal': () => {
-            if (!hasDataRows) return;
-            toggleModal(optionsModal, false);
-            toggleModal(deleteModal, true);
-        },
-        'open-keep-modal': () => {
-            if (!hasDataRows) return;
-            toggleModal(optionsModal, false);
-            toggleModal(keepModal, true);
-        },
+        'open-delete-modal': () => { if (hasDataRows) { toggleModal(optionsModal, false); toggleModal(deleteModal, true); } },
+        'open-keep-modal': () => { if (hasDataRows) { toggleModal(optionsModal, false); toggleModal(keepModal, true); } },
         'open-save-modal': () => {
             if (!hasDataRows) return showStatus('لا توجد بيانات لتنزيلها!', 'error');
             document.getElementById('modalFileNameInput').value = fileNameInput.value || 'data';
             toggleModal(saveModal, true);
         },
-        'close-modal': () => {
-            const modal = e.target.closest('.fixed');
-            if (modal) toggleModal(modal, false);
-        },
-        'add-row': () => {
-            // Check for the table header, which indicates a table structure is present.
-            if (!spreadsheetContainer.querySelector('table thead')) return showStatus('يجب إنشاء أو تحميل جدول أولاً.', 'error');
-            addRow();
-            toggleModal(optionsModal, false);
-        },
-        'clear-table': () => {
-            if (!hasDataRows) return;
-            clearTable();
-            toggleModal(optionsModal, false);
-        },
+        'close-modal': () => { const modal = e.target.closest('.fixed'); if (modal) toggleModal(modal, false); },
+        'add-row': () => { if (spreadsheetContainer.querySelector('table thead')) { addRow(); toggleModal(optionsModal, false); } },
+        'clear-table': () => { if (hasDataRows) { clearTable(); toggleModal(optionsModal, false); } },
         'confirm-new-table': () => {
             const cols = parseInt(document.getElementById('newTableCols').value) || 1;
             const rows = parseInt(document.getElementById('newTableRows').value) || 1;
-            if (cols < 1 || rows < 0) { return showStatus('يجب أن تكون الأعداد أكبر من صفر.', 'error'); }
             createNewTable(cols, rows);
             toggleModal(newTableModal, false);
         },
-        'confirm-delete': () => {
-            const keyword = document.getElementById('keywordInput-delete').value;
-            if (keyword.trim()) performRowDeletion(keyword);
-            toggleModal(deleteModal, false);
-        },
-        'confirm-keep': () => {
-            const keyword = document.getElementById('keywordInput-keep').value;
-            if (keyword.trim()) performRowKeeping(keyword);
-            toggleModal(keepModal, false);
-        },
-        'confirm-save': () => {
-            saveFile();
-            toggleModal(saveModal, false);
-        }
+        'confirm-delete': () => { const keyword = document.getElementById('keywordInput-delete').value; if (keyword.trim()) performRowDeletion(keyword); toggleModal(deleteModal, false); },
+        'confirm-keep': () => { const keyword = document.getElementById('keywordInput-keep').value; if (keyword.trim()) performRowKeeping(keyword); toggleModal(keepModal, false); },
+        'confirm-save': () => { saveFile(); toggleModal(saveModal, false); }
     };
-
     if (actions[action]) actions[action]();
 });
 
-// Listener to close modals when clicking outside the content area
 document.querySelectorAll('.fixed').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-        if (e.target.classList.contains('fixed') && e.target.id === modal.id) {
-            toggleModal(modal, false);
-        }
-    });
+    modal.addEventListener('click', (e) => { if (e.target.id === modal.id) toggleModal(modal, false); });
 });
 
 document.addEventListener('input', (e) => {
     const target = e.target;
-    if (target.dataset.action === 'update-count') {
-        updateActionCount(target.value, target.dataset.type);
-    }
+    if (target.dataset.action === 'update-count') updateActionCount(target.value, target.dataset.type);
 });
 
 
-// --- Report and Status Functions ---
+// --- Report & Status ---
 
-/**
- * THE SINGLE SOURCE OF TRUTH for the application's state.
- * It reads the DOM directly to calculate all counts, ensuring the report is always accurate.
- */
 function updateReport() {
     const allRows = Array.from(spreadsheetContainer.querySelector('tbody')?.querySelectorAll('tr') || []);
     const currentRowCount = allRows.length;
-
-    // 1. Calculate ADDED rows by finding elements with the 'new-row' class.
     const addedRowsInTable = allRows.filter(row => row.classList.contains('new-row')).length;
-
-    // 2. Calculate remaining ORIGINAL rows by subtracting added rows from the total.
     const originalRowsInTable = currentRowCount - addedRowsInTable;
+    let actualDeleted = Math.max(0, originalRowCount - originalRowsInTable);
 
-    // 3. Calculate DELETED rows by comparing the baseline original count with how many original rows are left.
-    let actualDeleted = originalRowCount - originalRowsInTable;
-    actualDeleted = Math.max(0, actualDeleted); // Prevent negative numbers.
-
-    // 4. Update the UI elements with the new, accurate counts.
     remainingRowsEl.textContent = currentRowCount;
     originalRowsEl.textContent = originalRowCount;
     addedRowsEl.textContent = addedRowsInTable;
     deletedRowsEl.textContent = actualDeleted;
 
-    // 5. Show or hide the report section based on whether there's any data.
-    if (currentRowCount > 0 || originalRowCount > 0) {
-        reportSection.classList.remove('hidden');
-    } else {
-        reportSection.classList.add('hidden');
-    }
-
-    // 6. Finally, update the enabled/disabled state of modal buttons.
+    const hasAnyData = currentRowCount > 0 || originalRowCount > 0;
+    reportSection.classList.toggle('hidden', !hasAnyData);
     updateModalButtonsState(currentRowCount > 0);
 }
 
@@ -228,14 +163,14 @@ function showStatus(message, type = 'info') {
 }
 
 
-// --- Loader Functions ---
+// --- Loader ---
 
-function showLoader() {
+function showLoader(text = 'جاري تحميل الملف...') {
+    loaderText.textContent = text;
     loaderOverlay.classList.remove('hidden');
     let progress = 0;
     document.getElementById('loader-percentage').textContent = '0%';
     if (progressInterval) clearInterval(progressInterval);
-
     progressInterval = setInterval(() => {
         progress += Math.floor(Math.random() * 5) + 1;
         if (progress >= 95) {
@@ -254,48 +189,133 @@ function hideLoader() {
 }
 
 
-// --- File I/O and Rendering ---
+// --- File I/O, Merging, and Rendering ---
 
+/**
+ * Handles the file input change event.
+ * Differentiates between single file selection and multiple file selection for merging.
+ */
 fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) {
+        resetFileSelection();
+        return;
+    }
 
+    if (files.length === 1) {
+        // Single file selected: load it directly.
+        resetFileSelection();
+        handleSingleFile(files[0]);
+    } else {
+        // Multiple files selected: prepare for merging.
+        selectedFiles = files;
+        fileInputLabel.querySelector('span').textContent = `تم تحديد ${files.length} ملفات`;
+        mergeBtn.disabled = false;
+        showStatus(`جاهز لدمج ${files.length} ملفات. اضغط على زر الدمج.`, 'info');
+    }
+});
+
+/**
+ * Resets the UI state related to file selection.
+ */
+function resetFileSelection() {
+    selectedFiles = null;
+    fileInputLabel.querySelector('span').textContent = '1. اختر ملفًا أو عدة ملفات';
+    mergeBtn.disabled = true;
+    fileInput.value = ''; // Important to allow re-selecting the same file(s).
+}
+
+/**
+ * Processes a single uploaded file.
+ * @param {File} file The file to process.
+ */
+function handleSingleFile(file) {
     showLoader();
     fileNameInput.value = file.name.split('.').slice(0, -1).join('.') || 'data';
 
-    setTimeout(() => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-
-                renderTable(jsonData);
-
-                // This is the crucial initialization of the baseline row count.
-                originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
-
-                // Immediately update the report and button states after loading.
-                updateReport();
-                showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
-            } catch (err) {
-                console.error("Error processing file:", err);
-                showStatus(`حدث خطأ أثناء معالجة الملف. تأكد من أنه ملف جدول بيانات صحيح.`, 'error');
-            } finally {
-                fileInput.value = ''; // Reset file input to allow re-uploading the same file.
-                hideLoader();
-            }
-        };
-        reader.onerror = () => {
-            showStatus(`حدث خطأ أثناء قراءة الملف.`, 'error');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
+            
+            renderTable(jsonData);
+            originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
+            updateReport();
+            showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
+        } catch (err) {
+            console.error("Error processing file:", err);
+            showStatus(`خطأ في معالجة الملف.`, 'error');
+        } finally {
             hideLoader();
         }
+    };
+    reader.onerror = () => { showStatus(`خطأ في قراءة الملف.`, 'error'); hideLoader(); };
+    reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Reads multiple selected files, merges their data, and renders the result.
+ */
+async function handleMergeFiles() {
+    if (!selectedFiles || selectedFiles.length < 2) {
+        return showStatus('الرجاء تحديد ملفين أو أكثر للدمج.', 'error');
+    }
+
+    showLoader(`جاري دمج ${selectedFiles.length} ملفات...`);
+    let mergedDataRows = [];
+    let headerRow = [];
+
+    try {
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            const arrayBuffer = await readFileAsArrayBuffer(file);
+            const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
+
+            if (jsonData.length > 0) {
+                if (i === 0) {
+                    // Use the header from the first file as the master header.
+                    headerRow = jsonData[0];
+                }
+                // Add all rows except the header to the merged list.
+                mergedDataRows.push(...jsonData.slice(1));
+            }
+        }
+
+        const finalData = [headerRow, ...mergedDataRows];
+        renderTable(finalData);
+        originalRowCount = mergedDataRows.length; // Set the new baseline count.
+        updateReport();
+        showStatus(`تم دمج ${selectedFiles.length} ملفات بنجاح.`, 'success');
+
+    } catch (err) {
+        console.error("Error merging files:", err);
+        showStatus('حدث خطأ أثناء عملية الدمج.', 'error');
+    } finally {
+        hideLoader();
+        resetFileSelection();
+    }
+}
+
+mergeBtn.addEventListener('click', handleMergeFiles);
+
+
+/**
+ * Helper function to read a File object as an ArrayBuffer using a Promise.
+ * @param {File} file The file to read.
+ * @returns {Promise<ArrayBuffer>}
+ */
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
         reader.readAsArrayBuffer(file);
-    }, 50);
-});
+    });
+}
+
 
 function renderTable(dataArray) {
     const existingTable = spreadsheetContainer.querySelector('table');
@@ -372,11 +392,11 @@ function createNewTable(cols, rows) {
 function addRow() {
     const table = spreadsheetContainer.querySelector('table');
     const tbody = table?.querySelector('tbody');
-    if (!tbody) return; // Guard clause
+    if (!tbody) return;
 
     const columnCount = table.querySelector('thead tr').children.length;
     const tr = document.createElement('tr');
-    tr.classList.add('new-row'); // Tag row as newly added for tracking.
+    tr.classList.add('new-row');
 
     for (let i = 0; i < columnCount; i++) {
         const td = document.createElement('td');
@@ -388,7 +408,7 @@ function addRow() {
 
     spreadsheetContainer.scrollTop = spreadsheetContainer.scrollHeight;
     tr.cells[0].focus();
-    updateReport(); // Recalculate everything after the change.
+    updateReport();
 }
 
 function manipulateRows(filterFn) {
@@ -403,7 +423,7 @@ function manipulateRows(filterFn) {
             numChanged++;
         }
     });
-    updateReport(); // Recalculate everything after the change.
+    updateReport();
     return { numChanged };
 }
 
@@ -423,7 +443,7 @@ function performRowKeeping(keyword) {
     if (!trimmedKeyword) return;
     const { numChanged } = manipulateRows(row => !row.textContent.toLowerCase().includes(trimmedKeyword));
     if (numChanged > 0) {
-        showStatus(`تم حذف ${numChanged} سطور (تم الإبقاء على المطابقة فقط).`, 'success');
+        showStatus(`تم حذف ${numChanged} سطور.`, 'success');
     } else {
         showStatus(`تم الإبقاء على جميع السطور المطابقة.`, 'info');
     }
@@ -431,8 +451,8 @@ function performRowKeeping(keyword) {
 
 function clearTable() {
     renderTable([]);
-    originalRowCount = 0; // Reset the baseline.
-    updateReport(); // Update the UI to reflect the cleared state.
+    originalRowCount = 0;
+    updateReport();
     showStatus('تم مسح الجدول بالكامل.', 'info');
 }
 
@@ -453,9 +473,9 @@ function updateActionCount(keyword, type) {
         counterEl.textContent = `سيتم حذف ${matchCount} سطور.`;
     } else if (type === 'keep') {
         const rowsToBeDeleted = totalRows - matchCount;
-        counterEl.textContent = `سيتم الإبقاء على ${matchCount} سطور وحذف ${rowsToBeDeleted} سطور.`;
+        counterEl.textContent = `سيتم الإبقاء على ${matchCount} سطور وحذف ${rowsToBeDeleted}.`;
     }
 }
 
 
-                
+            
