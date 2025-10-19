@@ -39,20 +39,15 @@ const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
 const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
 // --- Global State Variables ---
-// originalRowCount: Number of data rows loaded from the file or created initially.
+// originalRowCount: Number of data rows loaded from the file or created initially. This count never changes once set.
 let originalRowCount = 0;
-// addedRowCount: Number of rows manually added by the user.
-let addedRowCount = 0;
-// deletedRowCount: Number of rows removed from the total (Original + Added).
-let deletedRowCount = 0;
+let addedRowCount = 0; // Calculated in updateReport
+let deletedRowCount = 0; // Calculated in updateReport
 let progressInterval = null;
 
 
 // --- Theme Handling Functions ---
 
-/**
- * Initializes the theme based on localStorage or system preference.
- */
 function initTheme() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const storedTheme = localStorage.getItem('theme');
@@ -66,7 +61,6 @@ function initTheme() {
     }
 }
 
-// Event listener for theme toggle button
 themeToggleBtn.addEventListener('click', function() {
     themeToggleDarkIcon.classList.toggle('hidden');
     themeToggleLightIcon.classList.toggle('hidden');
@@ -77,18 +71,13 @@ themeToggleBtn.addEventListener('click', function() {
 
 // --- Modal & Action Handling ---
 
-/**
- * Toggles the visibility of a modal element.
- * @param {HTMLElement} modalElement The modal to show/hide.
- * @param {boolean} show Whether to show (true) or hide (false).
- */
 function toggleModal(modalElement, show) {
     if (show) {
         modalElement.classList.remove('hidden');
         lucide.createIcons(); 
     } else {
         modalElement.classList.add('hidden');
-        // Clear input fields in modals when closing
+        // Clear input fields and counter messages when closing
         modalElement.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
             input.value = '';
             if (input.dataset.type) {
@@ -99,24 +88,28 @@ function toggleModal(modalElement, show) {
 }
 
 /**
- * Updates the disabled state of action buttons in the options modal.
- * @param {boolean} hasData True if a table exists and contains data.
+ * Updates the disabled state of action buttons in the options modal based on data existence.
+ * @param {boolean} hasData True if a table exists and contains data rows.
  */
 function updateModalButtonsState(hasData) {
+    // This function runs when the Options modal is opened
     optionsModal.querySelectorAll('[data-action="add-row"], [data-action="open-delete-modal"], [data-action="open-keep-modal"], [data-action="clear-table"]').forEach(btn => btn.disabled = !hasData);
 }
 
 // Global click listener for actions and modal closures
 document.addEventListener('click', (e) => {
-    const action = e.target.closest('[data-action]')?.dataset.action;
+    const target = e.target.closest('[data-action]');
+    const action = target?.dataset.action;
     if (!action) return;
 
-    const tableExists = !!spreadsheetContainer.querySelector('tbody')?.children.length; // Check if table has rows
+    // Check data existence based on actual rows in the tbody
+    const tableExists = !!spreadsheetContainer.querySelector('tbody')?.children.length; 
     
     const actions = {
         'open-options': () => {
             toggleModal(optionsModal, true);
-            updateModalButtonsState(tableExists);
+            // Crucial: Update button state every time the options modal is opened
+            updateModalButtonsState(tableExists); 
         },
         'open-new-table-modal': () => { toggleModal(optionsModal, false); toggleModal(newTableModal, true); },
         'open-delete-modal': () => { 
@@ -180,7 +173,6 @@ document.querySelectorAll('.fixed').forEach(modal => {
     });
 });
 
-// Listener for dynamically updating row counts in delete/keep modals
 document.addEventListener('input', (e) => {
     const target = e.target;
     if(target.dataset.action === 'update-count') {
@@ -192,54 +184,45 @@ document.addEventListener('input', (e) => {
 // --- Report and Status Functions ---
 
 /**
- * Updates the change report in the main interface.
+ * Updates the change report in the main interface based on the current DOM state.
  */
 function updateReport() {
     const table = spreadsheetContainer.querySelector('table');
-    const currentRowCount = table ? table.querySelectorAll('tbody tr').length : 0;
-    
-    // We calculate the number of original rows remaining and added rows remaining.
-    // This allows for a more robust tracking of changes.
-    const originalRowsInTable = Array.from(table?.querySelectorAll('tbody tr') || []).filter(row => !row.classList.contains('new-row')).length;
-    const addedRowsInTable = Array.from(table?.querySelectorAll('tbody tr') || []).filter(row => row.classList.contains('new-row')).length;
+    const allRows = Array.from(table?.querySelectorAll('tbody tr') || []);
+    const currentRowCount = allRows.length;
 
-    // Recalculate deletion based on the actual difference from the original total.
-    const totalOriginal = originalRowCount;
-    const actualDeleted = totalOriginal - originalRowsInTable;
+    // 1. Calculate added rows (those with 'new-row' class)
+    const addedRowsInTable = allRows.filter(row => row.classList.contains('new-row')).length;
     
-    // Update global state based on current table DOM
-    addedRowCount = addedRowsInTable;
+    // 2. Calculate remaining original rows (Total rows - Added rows)
+    const originalRowsInTable = currentRowCount - addedRowsInTable; 
+
+    // 3. Calculate deleted rows (Original loaded count - Original remaining)
+    let actualDeleted = originalRowCount - originalRowsInTable;
+    actualDeleted = Math.max(0, actualDeleted); // Ensure it's not negative
+
+    // Update global state variables
+    addedRowCount = addedRowsInTable; 
     deletedRowCount = actualDeleted;
-
+    
     // Update UI elements
     remainingRowsEl.textContent = currentRowCount;
     originalRowsEl.textContent = originalRowCount;
     addedRowsEl.textContent = addedRowCount;
     deletedRowsEl.textContent = deletedRowCount;
     
-    // Show report only if data exists
-    if (currentRowCount > 0 || originalRowCount > 0 || addedRowCount > 0 || deletedRowCount > 0) {
+    // Show/Hide Report Section
+    if (currentRowCount > 0 || originalRowCount > 0) {
         reportSection.classList.remove('hidden');
     } else {
         reportSection.classList.add('hidden');
     }
-    
-    // Check if the Options modal is open and update its buttons
-    if (!optionsModal.classList.contains('hidden')) {
-        updateModalButtonsState(currentRowCount > 0);
-    }
 }
 
-/**
- * Displays a temporary status message to the user.
- * @param {string} message The message to display.
- * @param {'success'|'error'|'info'} type The type of message for coloring.
- */
 function showStatus(message, type = 'info') {
     const colorClass = type === 'error' ? 'text-red-500' : (type === 'success' ? 'text-emerald-500' : 'text-slate-500');
     statusMessage.textContent = message;
     statusMessage.className = `text-center text-sm h-5 mt-2 transition-opacity duration-300 ${colorClass}`;
-    // Clear message after 4 seconds
     setTimeout(() => statusMessage.textContent = '', 4000);
 }
 
@@ -252,7 +235,6 @@ function showLoader() {
     document.getElementById('loader-percentage').textContent = '0%';
     if (progressInterval) clearInterval(progressInterval);
     
-    // Simulate loading progress
     progressInterval = setInterval(() => {
         progress += Math.floor(Math.random() * 5) + 1; 
         if (progress >= 95) {
@@ -267,7 +249,6 @@ function hideLoader() {
     if(progressInterval) clearInterval(progressInterval);
     progressInterval = null;
     document.getElementById('loader-percentage').textContent = `100%`;
-    // Delay hiding for a smoother transition
     setTimeout(() => loaderOverlay.classList.add('hidden'), 400);
 }
 
@@ -289,15 +270,15 @@ fileInput.addEventListener('change', (event) => {
                 const workbook = XLSX.read(data, {type: 'array'});
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                // Use defval: '' to ensure empty cells are represented by empty strings, not null
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }); 
                 
                 renderTable(jsonData);
 
-                // Initialize report counters based on loaded data
+                // Set initial state: This is the ONLY time originalRowCount should be set (outside createNewTable).
                 originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
-                addedRowCount = 0;
-                deletedRowCount = 0;
+                
+                // Ensure all rows rendered from file DO NOT have the 'new-row' class. (Handled in renderTable now)
+
                 updateReport();
                 showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
             } catch (err) {
@@ -318,7 +299,6 @@ fileInput.addEventListener('change', (event) => {
 
 /**
  * Creates and renders the HTML table from a 2D data array.
- * @param {Array<Array<any>>} dataArray Data where the first array is the header.
  */
 function renderTable(dataArray) {
     const existingTable = spreadsheetContainer.querySelector('table');
@@ -350,6 +330,7 @@ function renderTable(dataArray) {
     const dataRows = dataArray.slice(1);
     dataRows.forEach(rowData => {
         const row = document.createElement('tr');
+        // Rows loaded from file/initial creation DO NOT have 'new-row' class
         for (let j = 0; j < headers.length; j++) {
             const td = document.createElement('td');
             td.textContent = (rowData[j] !== null && rowData[j] !== undefined) ? String(rowData[j]) : ''; 
@@ -362,9 +343,6 @@ function renderTable(dataArray) {
     spreadsheetContainer.appendChild(table);
 }
 
-/**
- * Exports the current table data to a file (XLSX, CSV, or JSON).
- */
 function saveFile() {
     const table = spreadsheetContainer.querySelector('table');
     if (!table) return;
@@ -390,27 +368,18 @@ function saveFile() {
 
 // --- Data Manipulation Functions ---
 
-/**
- * Creates a new, empty table with specified dimensions.
- * @param {number} cols Number of columns.
- * @param {number} rows Number of rows.
- */
 function createNewTable(cols, rows) {
     const headers = Array.from({length: cols}, (_, i) => `عمود ${i + 1}`);
     const data = [headers, ...Array.from({length: rows}, () => Array(cols).fill(''))];
     renderTable(data);
 
-    // Reset report counters
+    // Set initial state for new table
     originalRowCount = rows;
-    addedRowCount = 0;
-    deletedRowCount = 0;
+    
     updateReport();
     showStatus(`تم إنشاء جدول جديد (${cols} أعمدة, ${rows} سطور).`, 'success');
 }
 
-/**
- * Adds a new row to the existing table.
- */
 function addRow() {
     const table = spreadsheetContainer.querySelector('table');
     if (!table) return showStatus('يجب إنشاء أو تحميل جدول أولاً.', 'error');
@@ -431,13 +400,11 @@ function addRow() {
     spreadsheetContainer.scrollTop = spreadsheetContainer.scrollHeight;
     tr.cells[0].focus(); 
     
-    updateReport(); // Update report after adding the row
+    updateReport(); // Recalculate addedRowCount from DOM
 }
 
 /**
  * Removes rows from the table based on a filter function.
- * @param {function(HTMLElement): boolean} filterFn The function to decide which rows to remove.
- * @returns {{numChanged: number}} The number of rows removed.
  */
 function manipulateRows(filterFn) {
     const table = spreadsheetContainer.querySelector('table');
@@ -457,12 +424,10 @@ function manipulateRows(filterFn) {
     return { numChanged };
 }
 
-/**
- * Deletes rows containing the given keyword.
- * @param {string} keyword The keyword to search for.
- */
 function performRowDeletion(keyword) {
     const trimmedKeyword = keyword.trim().toLowerCase();
+    if (!trimmedKeyword) return showStatus('الرجاء إدخال كلمة مفتاحية للحذف.', 'error');
+    
     const { numChanged } = manipulateRows(row => row.textContent.toLowerCase().includes(trimmedKeyword));
     
     if (numChanged > 0) {
@@ -472,12 +437,10 @@ function performRowDeletion(keyword) {
     }
 }
 
-/**
- * Keeps only rows containing the given keyword (deleting non-matches).
- * @param {string} keyword The keyword to search for.
- */
 function performRowKeeping(keyword) {
     const trimmedKeyword = keyword.trim().toLowerCase();
+    if (!trimmedKeyword) return showStatus('الرجاء إدخال كلمة مفتاحية للإبقاء عليها.', 'error');
+    
     // Filter function is to remove rows where the text content DOES NOT include the keyword
     const { numChanged } = manipulateRows(row => !row.textContent.toLowerCase().includes(trimmedKeyword));
     
@@ -488,21 +451,13 @@ function performRowKeeping(keyword) {
     }
 }
 
-/**
- * Clears the entire table and resets the report.
- */
 function clearTable() {
     renderTable([]);
-    originalRowCount = 0; addedRowCount = 0; deletedRowCount = 0;
+    originalRowCount = 0; // Reset original count
     updateReport(); 
     showStatus('تم مسح الجدول بالكامل.', 'info');
 }
 
-/**
- * Dynamically updates the count of rows that will be affected by an action.
- * @param {string} keyword The keyword entered by the user.
- * @param {'delete'|'keep'} type The type of action (delete or keep).
- */
 function updateActionCount(keyword, type) {
     const trimmedKeyword = keyword.trim().toLowerCase();
     const counterEl = document.getElementById(`rowCount-${type}`);
@@ -523,4 +478,4 @@ function updateActionCount(keyword, type) {
     }
 }
 
-        
+                          
