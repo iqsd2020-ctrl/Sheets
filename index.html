@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محرر الجداول</title>
+    <title>محرر ودمج الجداول</title>
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#4f46e5"/>
@@ -16,61 +16,62 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js"></script>
-    <!-- SheetJS Library for reading and writing Excel/CSV/ODS files -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     
-    <!-- Local Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="text-slate-800 dark:text-slate-300 min-h-screen flex items-center justify-center p-2 sm:p-4 transition-colors duration-300">
 
     <div class="w-full max-w-7xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl shadow-slate-300/30 dark:shadow-black/30 p-4 sm:p-6 md:p-8 space-y-6 border border-slate-200 dark:border-slate-700 relative">
         
-        <!-- Theme Toggle Button -->
         <button id="theme-toggle" class="absolute top-4 left-4 p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
             <i id="theme-toggle-dark-icon" data-lucide="moon" class="w-5 h-5 hidden text-indigo-400"></i>
             <i id="theme-toggle-light-icon" data-lucide="sun" class="w-5 h-5 hidden text-amber-400"></i>
         </button>
 
-        <!-- Header Section -->
         <div class="text-center pb-4 border-b border-slate-200 dark:border-slate-700">
-            <h1 class="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">محرر الجداول</h1>
-            <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">افتح ملفات Excel, CSV, ODS وغيرها، ثم قم بتنزيل تعديلاتك بالصيغة التي تختارها.</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">محرر ودمج الجداول</h1>
+            <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">افتح ملفًا واحدًا للتعديل، أو اختر عدة ملفات لدمجها في جدول واحد.</p>
         </div>
 
-        <!-- File Input and Name Input -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-end">
-            <div>
-                <label for="fileInput" class="w-full flex items-center justify-center gap-3 text-white bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 focus:ring-4 focus:outline-none focus:ring-indigo-300 dark:focus:ring-indigo-800 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all duration-200 cursor-pointer shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30">
-                    <i data-lucide="upload-cloud"></i>
-                    <span>1. اختر ملف (Excel, CSV...)</span>
-                </label>
-                <input type="file" id="fileInput" accept=".csv, .tsv, .xls, .xlsx, .ods">
+        <!-- File Input and Merge Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
+            <!-- Left Column: File Selection & Merging -->
+            <div class="space-y-3">
+                 <div>
+                    <label id="fileInputLabel" for="fileInput" class="w-full flex items-center justify-center gap-3 text-white bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 focus:ring-4 focus:outline-none focus:ring-indigo-300 dark:focus:ring-indigo-800 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all duration-200 cursor-pointer shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30">
+                        <i data-lucide="upload-cloud"></i>
+                        <span>1. اختر ملفًا أو عدة ملفات</span>
+                    </label>
+                    <input type="file" id="fileInput" accept=".csv, .tsv, .xls, .xlsx, .ods" multiple>
+                </div>
+                 <button id="mergeBtn" disabled class="w-full flex items-center justify-center gap-3 text-white bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all duration-200 shadow-lg shadow-teal-500/20 hover:shadow-xl hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none dark:disabled:bg-slate-600">
+                    <i data-lucide="merge"></i>
+                    <span>2. دمج الملفات المحددة</span>
+                </button>
             </div>
-            <div>
-                <label for="fileNameInput" class="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">2. اسم الملف الأساسي:</label>
-                <input type="text" id="fileNameInput" placeholder="my-data" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500" value="my-data">
+            <!-- Right Column: Filename -->
+            <div class="pt-1">
+                <label for="fileNameInput" class="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">اسم الملف النهائي:</label>
+                <input type="text" id="fileNameInput" placeholder="merged-data" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white" value="merged-data">
             </div>
         </div>
 
-        <!-- Spreadsheet Container -->
         <div id="spreadsheet-container" class="border border-slate-200 dark:border-slate-700 rounded-lg overflow-auto h-[50vh] md:h-96 relative bg-white dark:bg-slate-900 shadow-inner">
             <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-4 transition-opacity duration-300">
                  <i data-lucide="file-spreadsheet" class="w-16 h-16 sm:w-24 sm:h-24 mb-4"></i>
                 <h3 class="text-lg sm:text-xl font-semibold text-center">منطقة عرض البيانات</h3>
                 <p class="text-sm sm:text-base text-center">اختر ملفًا أو أنشئ جدولاً جديداً لبدء التعديل...</p>
             </div>
-            <!-- Loader Overlay -->
             <div id="loader-overlay" class="hidden absolute inset-0 bg-white/80 dark:bg-slate-900/80 flex-col items-center justify-center z-20 backdrop-blur-sm transition-opacity duration-300">
                 <div class="relative h-24 w-24 flex items-center justify-center">
                     <div class="loader ease-linear rounded-full border-8 border-t-8 border-slate-200 dark:border-slate-700 h-full w-full absolute"></div>
                     <p id="loader-percentage" class="text-lg font-bold text-indigo-600 dark:text-indigo-400">0%</p>
                 </div>
-                <p class="text-lg font-semibold text-slate-600 dark:text-slate-300 mt-4">جاري تحميل الملف...</p>
+                <p id="loader-text" class="text-lg font-semibold text-slate-600 dark:text-slate-300 mt-4">جاري تحميل الملف...</p>
             </div>
         </div>
 
-        <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
             <button data-action="open-save-modal" class="w-full sm:w-auto flex items-center justify-center gap-2 text-white bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 focus:ring-4 focus:outline-none focus:ring-emerald-300 dark:focus:ring-emerald-800 font-medium rounded-lg text-sm px-8 py-3 text-center transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30">
                 <i data-lucide="download" class="pointer-events-none"></i>
@@ -82,7 +83,6 @@
             </button>
         </div>
 
-        <!-- Report Section -->
         <div id="reportSection" class="hidden pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
             <h4 class="text-center font-bold text-lg mb-4 text-slate-700 dark:text-slate-300">تقرير التغييرات</h4>
              <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 text-center">
@@ -108,9 +108,7 @@
         <div id="statusMessage" class="text-center text-sm h-5 mt-2"></div>
     </div>
     
-    <!-- MODALS -->
-
-    <!-- 1. Options Modal -->
+    <!-- MODALS (Same as before) -->
     <div id="optionsModal" class="fixed inset-0 hidden bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300">
         <div data-modal-content class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl transition-transform duration-300">
             <h3 class="text-xl font-bold text-indigo-600 dark:text-indigo-400 border-b pb-3 mb-4">خيارات التعديل</h3>
@@ -141,8 +139,6 @@
             <button data-action="close-modal" class="mt-6 w-full py-2 text-sm font-semibold rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">إغلاق</button>
         </div>
     </div>
-
-    <!-- 2. New Table Modal -->
     <div id="newTableModal" class="fixed inset-0 hidden bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div data-modal-content class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="text-xl font-bold text-indigo-600 dark:text-indigo-400 border-b pb-3 mb-4">إنشاء جدول جديد</h3>
@@ -163,8 +159,6 @@
             </div>
         </div>
     </div>
-
-    <!-- 3. Delete Modal (Deletion by Keyword) -->
     <div id="deleteModal" class="fixed inset-0 hidden bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div data-modal-content class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="text-xl font-bold text-red-600 dark:text-red-400 border-b pb-3 mb-4">حذف السطور المطابقة</h3>
@@ -180,8 +174,6 @@
             </div>
         </div>
     </div>
-
-    <!-- 4. Keep Modal (Filtering by Keyword) -->
     <div id="keepModal" class="fixed inset-0 hidden bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div data-modal-content class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="text-xl font-bold text-yellow-600 dark:text-yellow-400 border-b pb-3 mb-4">الإبقاء على السطور المطابقة فقط</h3>
@@ -197,17 +189,13 @@
             </div>
         </div>
     </div>
-
-    <!-- 5. Save Modal (Download Options) -->
     <div id="saveModal" class="fixed inset-0 hidden bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div data-modal-content class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="text-xl font-bold text-emerald-600 dark:text-emerald-400 border-b pb-3 mb-4">حفظ وتنزيل الملف</h3>
-            
             <div class="mb-4">
                 <label for="modalFileNameInput" class="block mb-2 text-sm font-medium">اسم الملف:</label>
                 <input type="text" id="modalFileNameInput" placeholder="data" class="w-full p-3 border border-slate-300 rounded-lg dark:bg-slate-700 dark:border-slate-600 focus:ring-emerald-500 focus:border-emerald-500">
             </div>
-
             <div class="space-y-3">
                 <label class="flex items-center space-x-3 space-x-reverse cursor-pointer p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     <input type="radio" name="save-format" value="xlsx" checked class="form-radio text-emerald-600 w-4 h-4 focus:ring-emerald-500">
@@ -222,7 +210,6 @@
                     <span class="text-sm font-medium">JSON (.json) - للاستخدام البرمجي</span>
                 </label>
             </div>
-            
             <div class="flex justify-end gap-3 mt-6">
                 <button data-action="close-modal" class="py-2 px-4 text-sm font-semibold rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">إلغاء</button>
                 <button data-action="confirm-save" class="py-2 px-4 text-sm font-semibold rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20">بدء التنزيل</button>
@@ -234,4 +221,4 @@
 </body>
 </html>
 
-                        
+
