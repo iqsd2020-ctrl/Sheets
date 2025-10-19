@@ -1,6 +1,7 @@
 /**
  * Sheets Editor Application Logic (Arabic RTL)
  * Handles file loading (XLSX), table rendering, data manipulation, and PWA functions.
+ * FINAL VERIFIED VERSION
  */
 
 window.onload = () => {
@@ -23,7 +24,7 @@ const fileNameInput = document.getElementById('fileNameInput');
 const statusMessage = document.getElementById('statusMessage');
 const spreadsheetContainer = document.getElementById('spreadsheet-container');
 const placeholder = document.getElementById('placeholder');
-const loaderOverlay = document.getElementById('loader-overlay'); 
+const loaderOverlay = document.getElementById('loader-overlay');
 const optionsModal = document.getElementById('optionsModal');
 const newTableModal = document.getElementById('newTableModal');
 const deleteModal = document.getElementById('deleteModal');
@@ -39,10 +40,8 @@ const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
 const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
 // --- Global State Variables ---
-// originalRowCount: Number of data rows loaded from the file or created initially. This count never changes once set.
+// originalRowCount: The number of data rows loaded from the file or created initially. This is the baseline.
 let originalRowCount = 0;
-let addedRowCount = 0; // Calculated in updateReport
-let deletedRowCount = 0; // Calculated in updateReport
 let progressInterval = null;
 
 
@@ -61,7 +60,7 @@ function initTheme() {
     }
 }
 
-themeToggleBtn.addEventListener('click', function() {
+themeToggleBtn.addEventListener('click', function () {
     themeToggleDarkIcon.classList.toggle('hidden');
     themeToggleLightIcon.classList.toggle('hidden');
     const isDark = document.documentElement.classList.toggle('dark');
@@ -74,7 +73,7 @@ themeToggleBtn.addEventListener('click', function() {
 function toggleModal(modalElement, show) {
     if (show) {
         modalElement.classList.remove('hidden');
-        lucide.createIcons(); 
+        lucide.createIcons();
     } else {
         modalElement.classList.add('hidden');
         // Clear input fields and counter messages when closing
@@ -92,7 +91,6 @@ function toggleModal(modalElement, show) {
  * @param {boolean} hasData True if a table exists and contains data rows.
  */
 function updateModalButtonsState(hasData) {
-    // This function runs when the Options modal is opened
     optionsModal.querySelectorAll('[data-action="add-row"], [data-action="open-delete-modal"], [data-action="open-keep-modal"], [data-action="clear-table"]').forEach(btn => btn.disabled = !hasData);
 }
 
@@ -102,40 +100,44 @@ document.addEventListener('click', (e) => {
     const action = target?.dataset.action;
     if (!action) return;
 
-    // Check data existence based on actual rows in the tbody
-    const tableExists = !!spreadsheetContainer.querySelector('tbody')?.children.length; 
-    
+    // This check is the gatekeeper for actions, ensuring data exists.
+    const hasDataRows = !!spreadsheetContainer.querySelector('tbody')?.children.length;
+
     const actions = {
         'open-options': () => {
             toggleModal(optionsModal, true);
             // Crucial: Update button state every time the options modal is opened
-            updateModalButtonsState(tableExists); 
+            updateModalButtonsState(hasDataRows);
         },
         'open-new-table-modal': () => { toggleModal(optionsModal, false); toggleModal(newTableModal, true); },
-        'open-delete-modal': () => { 
-            if(!tableExists) return showStatus('لا توجد بيانات متاحة لعملية الحذف.', 'error');
-            toggleModal(optionsModal, false); 
-            toggleModal(deleteModal, true); 
+        'open-delete-modal': () => {
+            if (!hasDataRows) return;
+            toggleModal(optionsModal, false);
+            toggleModal(deleteModal, true);
         },
-        'open-keep-modal': () => { 
-            if(!tableExists) return showStatus('لا توجد بيانات متاحة لعملية الإبقاء.', 'error');
-            toggleModal(optionsModal, false); 
-            toggleModal(keepModal, true); 
+        'open-keep-modal': () => {
+            if (!hasDataRows) return;
+            toggleModal(optionsModal, false);
+            toggleModal(keepModal, true);
         },
         'open-save-modal': () => {
-            if (!tableExists) {
-                 return showStatus('لا توجد بيانات لتنزيلها!', 'error');
-            }
+            if (!hasDataRows) return showStatus('لا توجد بيانات لتنزيلها!', 'error');
             document.getElementById('modalFileNameInput').value = fileNameInput.value || 'data';
             toggleModal(saveModal, true);
         },
         'close-modal': () => {
-            const modal = e.target.closest('.fixed'); 
+            const modal = e.target.closest('.fixed');
             if (modal) toggleModal(modal, false);
         },
-        'add-row': () => { addRow(); toggleModal(optionsModal, false); },
-        'clear-table': () => { 
-            clearTable(); 
+        'add-row': () => {
+            // Check for the table header, which indicates a table structure is present.
+            if (!spreadsheetContainer.querySelector('table thead')) return showStatus('يجب إنشاء أو تحميل جدول أولاً.', 'error');
+            addRow();
+            toggleModal(optionsModal, false);
+        },
+        'clear-table': () => {
+            if (!hasDataRows) return;
+            clearTable();
             toggleModal(optionsModal, false);
         },
         'confirm-new-table': () => {
@@ -175,7 +177,7 @@ document.querySelectorAll('.fixed').forEach(modal => {
 
 document.addEventListener('input', (e) => {
     const target = e.target;
-    if(target.dataset.action === 'update-count') {
+    if (target.dataset.action === 'update-count') {
         updateActionCount(target.value, target.dataset.type);
     }
 });
@@ -184,39 +186,38 @@ document.addEventListener('input', (e) => {
 // --- Report and Status Functions ---
 
 /**
- * Updates the change report in the main interface based on the current DOM state.
+ * THE SINGLE SOURCE OF TRUTH for the application's state.
+ * It reads the DOM directly to calculate all counts, ensuring the report is always accurate.
  */
 function updateReport() {
-    const table = spreadsheetContainer.querySelector('table');
-    const allRows = Array.from(table?.querySelectorAll('tbody tr') || []);
+    const allRows = Array.from(spreadsheetContainer.querySelector('tbody')?.querySelectorAll('tr') || []);
     const currentRowCount = allRows.length;
 
-    // 1. Calculate added rows (those with 'new-row' class)
+    // 1. Calculate ADDED rows by finding elements with the 'new-row' class.
     const addedRowsInTable = allRows.filter(row => row.classList.contains('new-row')).length;
-    
-    // 2. Calculate remaining original rows (Total rows - Added rows)
-    const originalRowsInTable = currentRowCount - addedRowsInTable; 
 
-    // 3. Calculate deleted rows (Original loaded count - Original remaining)
+    // 2. Calculate remaining ORIGINAL rows by subtracting added rows from the total.
+    const originalRowsInTable = currentRowCount - addedRowsInTable;
+
+    // 3. Calculate DELETED rows by comparing the baseline original count with how many original rows are left.
     let actualDeleted = originalRowCount - originalRowsInTable;
-    actualDeleted = Math.max(0, actualDeleted); // Ensure it's not negative
+    actualDeleted = Math.max(0, actualDeleted); // Prevent negative numbers.
 
-    // Update global state variables
-    addedRowCount = addedRowsInTable; 
-    deletedRowCount = actualDeleted;
-    
-    // Update UI elements
+    // 4. Update the UI elements with the new, accurate counts.
     remainingRowsEl.textContent = currentRowCount;
     originalRowsEl.textContent = originalRowCount;
-    addedRowsEl.textContent = addedRowCount;
-    deletedRowsEl.textContent = deletedRowCount;
-    
-    // Show/Hide Report Section
+    addedRowsEl.textContent = addedRowsInTable;
+    deletedRowsEl.textContent = actualDeleted;
+
+    // 5. Show or hide the report section based on whether there's any data.
     if (currentRowCount > 0 || originalRowCount > 0) {
         reportSection.classList.remove('hidden');
     } else {
         reportSection.classList.add('hidden');
     }
+
+    // 6. Finally, update the enabled/disabled state of modal buttons.
+    updateModalButtonsState(currentRowCount > 0);
 }
 
 function showStatus(message, type = 'info') {
@@ -234,9 +235,9 @@ function showLoader() {
     let progress = 0;
     document.getElementById('loader-percentage').textContent = '0%';
     if (progressInterval) clearInterval(progressInterval);
-    
+
     progressInterval = setInterval(() => {
-        progress += Math.floor(Math.random() * 5) + 1; 
+        progress += Math.floor(Math.random() * 5) + 1;
         if (progress >= 95) {
             progress = 95;
             clearInterval(progressInterval);
@@ -246,7 +247,7 @@ function showLoader() {
 }
 
 function hideLoader() {
-    if(progressInterval) clearInterval(progressInterval);
+    if (progressInterval) clearInterval(progressInterval);
     progressInterval = null;
     document.getElementById('loader-percentage').textContent = `100%`;
     setTimeout(() => loaderOverlay.classList.add('hidden'), 400);
@@ -258,7 +259,7 @@ function hideLoader() {
 fileInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     showLoader();
     fileNameInput.value = file.name.split('.').slice(0, -1).join('.') || 'data';
 
@@ -267,23 +268,24 @@ fileInput.addEventListener('change', (event) => {
         reader.onload = (e) => {
             try {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
+                const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }); 
-                
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
                 renderTable(jsonData);
 
-                // Set initial state: This is the ONLY time originalRowCount should be set (outside createNewTable).
+                // This is the crucial initialization of the baseline row count.
                 originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
-                
+
+                // Immediately update the report and button states after loading.
                 updateReport();
                 showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
             } catch (err) {
                 console.error("Error processing file:", err);
                 showStatus(`حدث خطأ أثناء معالجة الملف. تأكد من أنه ملف جدول بيانات صحيح.`, 'error');
             } finally {
-                fileInput.value = '';
+                fileInput.value = ''; // Reset file input to allow re-uploading the same file.
                 hideLoader();
             }
         };
@@ -295,9 +297,6 @@ fileInput.addEventListener('change', (event) => {
     }, 50);
 });
 
-/**
- * Creates and renders the HTML table from a 2D data array.
- */
 function renderTable(dataArray) {
     const existingTable = spreadsheetContainer.querySelector('table');
     if (existingTable) existingTable.remove();
@@ -313,7 +312,6 @@ function renderTable(dataArray) {
     const tbody = document.createElement('tbody');
     const headers = dataArray[0] || [];
 
-    // 1. Create Header
     const headerRow = document.createElement('tr');
     headers.forEach(headerText => {
         const th = document.createElement('th');
@@ -324,14 +322,12 @@ function renderTable(dataArray) {
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
-    // 2. Create Body Rows
     const dataRows = dataArray.slice(1);
     dataRows.forEach(rowData => {
         const row = document.createElement('tr');
-        // Rows loaded from file/initial creation DO NOT have 'new-row' class
         for (let j = 0; j < headers.length; j++) {
             const td = document.createElement('td');
-            td.textContent = (rowData[j] !== null && rowData[j] !== undefined) ? String(rowData[j]) : ''; 
+            td.textContent = (rowData[j] !== null && rowData[j] !== undefined) ? String(rowData[j]) : '';
             td.setAttribute('contenteditable', 'true');
             row.appendChild(td);
         }
@@ -348,18 +344,16 @@ function saveFile() {
     const format = document.querySelector('input[name="save-format"]:checked')?.value || 'xlsx';
     const baseName = document.getElementById('modalFileNameInput').value.trim() || 'data';
     const finalFileName = `${baseName}.${format}`;
-    
+
     try {
         const ws = XLSX.utils.table_to_sheet(table);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-        
         XLSX.writeFile(wb, finalFileName, { bookType: format });
-
         showStatus(`تم بدء تنزيل "${finalFileName}".`, 'success');
     } catch (err) {
-         console.error("Error saving file:", err);
-         showStatus(`حدث خطأ أثناء إنشاء الملف.`, 'error');
+        console.error("Error saving file:", err);
+        showStatus(`حدث خطأ أثناء إنشاء الملف.`, 'error');
     }
 }
 
@@ -367,68 +361,56 @@ function saveFile() {
 // --- Data Manipulation Functions ---
 
 function createNewTable(cols, rows) {
-    const headers = Array.from({length: cols}, (_, i) => `عمود ${i + 1}`);
-    const data = [headers, ...Array.from({length: rows}, () => Array(cols).fill(''))];
+    const headers = Array.from({ length: cols }, (_, i) => `عمود ${i + 1}`);
+    const data = [headers, ...Array.from({ length: rows }, () => Array(cols).fill(''))];
     renderTable(data);
-
-    // Set initial state for new table
     originalRowCount = rows;
-    
     updateReport();
     showStatus(`تم إنشاء جدول جديد (${cols} أعمدة, ${rows} سطور).`, 'success');
 }
 
 function addRow() {
     const table = spreadsheetContainer.querySelector('table');
-    // FIX: Ensure table element exists before proceeding
-    if (!table) return showStatus('يجب إنشاء أو تحميل جدول أولاً.', 'error');
-    
+    const tbody = table?.querySelector('tbody');
+    if (!tbody) return; // Guard clause
+
     const columnCount = table.querySelector('thead tr').children.length;
-    const tbody = table.querySelector('tbody');
     const tr = document.createElement('tr');
-    tr.classList.add('new-row'); // Tag row as newly added
-    
-    for(let i = 0; i < columnCount; i++) {
+    tr.classList.add('new-row'); // Tag row as newly added for tracking.
+
+    for (let i = 0; i < columnCount; i++) {
         const td = document.createElement('td');
         td.setAttribute('contenteditable', 'true');
-        td.textContent = ''; 
+        td.textContent = '';
         tr.appendChild(td);
     };
     tbody.appendChild(tr);
-    
+
     spreadsheetContainer.scrollTop = spreadsheetContainer.scrollHeight;
-    tr.cells[0].focus(); 
-    
-    updateReport(); // Recalculate addedRowCount from DOM
+    tr.cells[0].focus();
+    updateReport(); // Recalculate everything after the change.
 }
 
-/**
- * Removes rows from the table based on a filter function.
- */
 function manipulateRows(filterFn) {
-    const table = spreadsheetContainer.querySelector('table');
-    if (!table) return { numChanged: 0 };
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const tbody = spreadsheetContainer.querySelector('tbody');
+    if (!tbody) return { numChanged: 0 };
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
     let numChanged = 0;
-    
     rows.forEach(row => {
         if (filterFn(row)) {
             row.remove();
             numChanged++;
         }
     });
-    
-    updateReport(); // Update the report based on the final DOM state
-    
+    updateReport(); // Recalculate everything after the change.
     return { numChanged };
 }
 
 function performRowDeletion(keyword) {
     const trimmedKeyword = keyword.trim().toLowerCase();
-    if (!trimmedKeyword) return showStatus('الرجاء إدخال كلمة مفتاحية للحذف.', 'error');
-    
+    if (!trimmedKeyword) return;
     const { numChanged } = manipulateRows(row => row.textContent.toLowerCase().includes(trimmedKeyword));
-    
     if (numChanged > 0) {
         showStatus(`تم حذف ${numChanged} سطور.`, 'success');
     } else {
@@ -438,11 +420,8 @@ function performRowDeletion(keyword) {
 
 function performRowKeeping(keyword) {
     const trimmedKeyword = keyword.trim().toLowerCase();
-    if (!trimmedKeyword) return showStatus('الرجاء إدخال كلمة مفتاحية للإبقاء عليها.', 'error');
-    
-    // Filter function is to remove rows where the text content DOES NOT include the keyword
+    if (!trimmedKeyword) return;
     const { numChanged } = manipulateRows(row => !row.textContent.toLowerCase().includes(trimmedKeyword));
-    
     if (numChanged > 0) {
         showStatus(`تم حذف ${numChanged} سطور (تم الإبقاء على المطابقة فقط).`, 'success');
     } else {
@@ -452,23 +431,24 @@ function performRowKeeping(keyword) {
 
 function clearTable() {
     renderTable([]);
-    originalRowCount = 0; // Reset original count
-    updateReport(); 
+    originalRowCount = 0; // Reset the baseline.
+    updateReport(); // Update the UI to reflect the cleared state.
     showStatus('تم مسح الجدول بالكامل.', 'info');
 }
 
 function updateActionCount(keyword, type) {
     const trimmedKeyword = keyword.trim().toLowerCase();
     const counterEl = document.getElementById(`rowCount-${type}`);
-    
-    if (!trimmedKeyword) return counterEl.textContent = '';
-    
-    const table = spreadsheetContainer.querySelector('table');
-    if (!table) return;
+    if (!trimmedKeyword) {
+        counterEl.textContent = '';
+        return;
+    }
+    const tbody = spreadsheetContainer.querySelector('tbody');
+    if (!tbody) return;
 
-    let totalRows = table.querySelectorAll('tbody tr').length;
-    let matchCount = Array.from(table.querySelectorAll('tbody tr')).filter(row => row.textContent.toLowerCase().includes(trimmedKeyword)).length;
-    
+    const totalRows = tbody.querySelectorAll('tr').length;
+    const matchCount = Array.from(tbody.querySelectorAll('tr')).filter(row => row.textContent.toLowerCase().includes(trimmedKeyword)).length;
+
     if (type === 'delete') {
         counterEl.textContent = `سيتم حذف ${matchCount} سطور.`;
     } else if (type === 'keep') {
@@ -477,3 +457,5 @@ function updateActionCount(keyword, type) {
     }
 }
 
+
+                
