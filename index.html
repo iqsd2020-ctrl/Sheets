@@ -18,6 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     
+    <!-- Local Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="text-slate-800 dark:text-slate-300 min-h-screen flex items-center justify-center p-2 sm:p-4 transition-colors duration-300">
@@ -34,23 +35,20 @@
             <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2">افتح ملفًا واحدًا للتعديل، أو اختر عدة ملفات لدمجها في جدول واحد.</p>
         </div>
 
-        <!-- File Input and Merge Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
-            <!-- Left Column: File Selection & Merging -->
             <div class="space-y-3">
                  <div>
                     <label id="fileInputLabel" for="fileInput" class="w-full flex items-center justify-center gap-3 text-white bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 focus:ring-4 focus:outline-none focus:ring-indigo-300 dark:focus:ring-indigo-800 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all duration-200 cursor-pointer shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30">
                         <i data-lucide="upload-cloud"></i>
                         <span>1. اختر ملفًا أو عدة ملفات</span>
                     </label>
-                    <input type="file" id="fileInput" accept=".csv, .tsv, .xls, .xlsx, .ods" multiple>
+                    <input type="file" id="fileInput" class="visually-hidden" multiple>
                 </div>
                  <button id="mergeBtn" disabled class="w-full flex items-center justify-center gap-3 text-white bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all duration-200 shadow-lg shadow-teal-500/20 hover:shadow-xl hover:shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none dark:disabled:bg-slate-600">
                     <i data-lucide="merge"></i>
                     <span>2. دمج الملفات المحددة</span>
                 </button>
             </div>
-            <!-- Right Column: Filename -->
             <div class="pt-1">
                 <label for="fileNameInput" class="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">اسم الملف النهائي:</label>
                 <input type="text" id="fileNameInput" placeholder="merged-data" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600 dark:placeholder-slate-400 dark:text-white" value="merged-data">
@@ -63,10 +61,12 @@
                 <h3 class="text-lg sm:text-xl font-semibold text-center">منطقة عرض البيانات</h3>
                 <p class="text-sm sm:text-base text-center">اختر ملفًا أو أنشئ جدولاً جديداً لبدء التعديل...</p>
             </div>
-            <!-- Simplified Loader Overlay -->
-            <div id="loader-overlay" class="hidden absolute inset-0 bg-white/80 dark:bg-slate-900/80 flex-col items-center justify-center z-20 backdrop-blur-sm transition-opacity duration-300">
-                <div class="loader ease-linear rounded-full border-8 border-t-8 border-slate-200 dark:border-slate-700 h-20 w-20"></div>
-                <p id="loader-text" class="text-lg font-semibold text-slate-600 dark:text-slate-300 mt-6">جاري المعالجة...</p>
+            <div id="loader-overlay" class="hidden absolute inset-0 bg-white/80 dark:bg-slate-900/80 flex-col items-center justify-center z-20 backdrop-blur-sm transition-opacity duration-300 p-8">
+                <p id="loader-text" class="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-4">جاري المعالجة...</p>
+                <div class="w-full max-w-md bg-slate-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden shadow-inner">
+                    <div id="progress-bar" class="bg-emerald-500 h-4 rounded-full transition-all duration-300 ease-linear" style="width: 0%"></div>
+                </div>
+                <p id="loader-percentage" class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-2">0%</p>
             </div>
         </div>
 
@@ -106,7 +106,7 @@
         <div id="statusMessage" class="text-center text-sm h-5 mt-2"></div>
     </div>
     
-    <!-- MODALS (Same as before) -->
+    <!-- MODALS -->
     <div id="optionsModal" class="fixed inset-0 hidden bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300">
         <div data-modal-content class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl transition-transform duration-300">
             <h3 class="text-xl font-bold text-indigo-600 dark:text-indigo-400 border-b pb-3 mb-4">خيارات التعديل</h3>
@@ -215,9 +215,9 @@
         </div>
     </div>
 
+    <!-- Local JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
 
 
-    
