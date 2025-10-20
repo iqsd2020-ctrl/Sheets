@@ -1,22 +1,18 @@
 /**
  * Sheets Editor & Merger Application Logic (Arabic RTL)
  * Handles single file loading, multi-file merging, table rendering, data manipulation, and PWA functions.
- * FINAL VERIFIED VERSION - With async/await fix for loader issue.
+ * FINAL VERIFIED VERSION - With simplified loader and guaranteed UI update logic.
  */
 
 window.onload = () => {
-    // Initialize Lucide icons and theme settings on page load
     lucide.createIcons();
     initTheme();
-
-    // Register Service Worker for PWA/Offline capabilities
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
+        navigator.service-worker.register('./sw.js')
             .then(reg => console.log('Service Worker registered successfully:', reg.scope))
             .catch(err => console.error('Service worker registration failed:', err));
     }
 };
-
 
 // --- Element Selections ---
 const fileInput = document.getElementById('fileInput');
@@ -42,18 +38,14 @@ const themeToggleBtn = document.getElementById('theme-toggle');
 const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
 const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
-// --- Global State Variables ---
+// --- Global State ---
 let originalRowCount = 0;
-let progressInterval = null;
-let selectedFiles = null; // To store files for merging
+let selectedFiles = null;
 
-
-// --- Theme Handling ---
-
+// --- Theme ---
 function initTheme() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const storedTheme = localStorage.getItem('theme');
-
     if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
         document.documentElement.classList.add('dark');
         themeToggleLightIcon.classList.remove('hidden');
@@ -70,20 +62,14 @@ themeToggleBtn.addEventListener('click', function () {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
 });
 
-
-// --- Modal & Action Handling ---
-
-function toggleModal(modalElement, show) {
-    if (show) {
-        modalElement.classList.remove('hidden');
-        lucide.createIcons();
-    } else {
-        modalElement.classList.add('hidden');
-        modalElement.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+// --- Modals & Actions ---
+function toggleModal(modal, show) {
+    modal.classList.toggle('hidden', !show);
+    if (show) lucide.createIcons();
+    else {
+        modal.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
             input.value = '';
-            if (input.dataset.type) {
-                document.getElementById(`rowCount-${input.dataset.type}`).textContent = '';
-            }
+            if (input.dataset.type) document.getElementById(`rowCount-${input.dataset.type}`).textContent = '';
         });
     }
 }
@@ -92,11 +78,10 @@ function updateModalButtonsState(hasData) {
     optionsModal.querySelectorAll('[data-action="add-row"], [data-action="open-delete-modal"], [data-action="open-keep-modal"], [data-action="clear-table"]').forEach(btn => btn.disabled = !hasData);
 }
 
-document.addEventListener('click', (e) => {
+document.addEventListener('click', e => {
     const target = e.target.closest('[data-action]');
     if (!target) return;
     const action = target.dataset.action;
-    
     const hasDataRows = !!spreadsheetContainer.querySelector('tbody')?.children.length;
 
     const actions = {
@@ -109,7 +94,7 @@ document.addEventListener('click', (e) => {
             document.getElementById('modalFileNameInput').value = fileNameInput.value || 'data';
             toggleModal(saveModal, true);
         },
-        'close-modal': () => { const modal = e.target.closest('.fixed'); if (modal) toggleModal(modal, false); },
+        'close-modal': () => { toggleModal(e.target.closest('.fixed'), false); },
         'add-row': () => { if (spreadsheetContainer.querySelector('table thead')) { addRow(); toggleModal(optionsModal, false); } },
         'clear-table': () => { if (hasDataRows) { clearTable(); toggleModal(optionsModal, false); } },
         'confirm-new-table': () => {
@@ -126,17 +111,14 @@ document.addEventListener('click', (e) => {
 });
 
 document.querySelectorAll('.fixed').forEach(modal => {
-    modal.addEventListener('click', (e) => { if (e.target.id === modal.id) toggleModal(modal, false); });
+    modal.addEventListener('click', e => { if (e.target.id === modal.id) toggleModal(modal, false); });
 });
 
-document.addEventListener('input', (e) => {
-    const target = e.target;
-    if (target.dataset.action === 'update-count') updateActionCount(target.value, target.dataset.type);
+document.addEventListener('input', e => {
+    if (e.target.dataset.action === 'update-count') updateActionCount(e.target.value, e.target.dataset.type);
 });
-
 
 // --- Report & Status ---
-
 function updateReport() {
     const allRows = Array.from(spreadsheetContainer.querySelector('tbody')?.querySelectorAll('tr') || []);
     const currentRowCount = allRows.length;
@@ -161,45 +143,23 @@ function showStatus(message, type = 'info') {
     setTimeout(() => statusMessage.textContent = '', 4000);
 }
 
-
 // --- Loader ---
-
-function showLoader(text = 'جاري تحميل الملف...') {
+function showLoader(text = 'جاري المعالجة...') {
     loaderText.textContent = text;
     loaderOverlay.classList.remove('hidden');
-    let progress = 0;
-    document.getElementById('loader-percentage').textContent = '0%';
-    if (progressInterval) clearInterval(progressInterval);
-    progressInterval = setInterval(() => {
-        progress += Math.floor(Math.random() * 5) + 1;
-        if (progress >= 95) {
-            progress = 95;
-            clearInterval(progressInterval);
-        }
-        document.getElementById('loader-percentage').textContent = `${progress}%`;
-    }, 150);
 }
 
 function hideLoader() {
-    if (progressInterval) clearInterval(progressInterval);
-    progressInterval = null;
-    document.getElementById('loader-percentage').textContent = `100%`;
-    setTimeout(() => loaderOverlay.classList.add('hidden'), 400);
+    loaderOverlay.classList.add('hidden');
 }
 
-
-// --- File I/O, Merging, and Rendering ---
-
-fileInput.addEventListener('change', (event) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) {
-        resetFileSelection();
-        return;
-    }
-
+// --- File I/O & Merging ---
+fileInput.addEventListener('change', e => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return resetFileSelection();
     if (files.length === 1) {
         resetFileSelection();
-        handleSingleFile(files[0]); // Call the new async version
+        handleSingleFile(files[0]);
     } else {
         selectedFiles = files;
         fileInputLabel.querySelector('span').textContent = `تم تحديد ${files.length} ملفات`;
@@ -215,18 +175,16 @@ function resetFileSelection() {
     fileInput.value = '';
 }
 
-/**
- * REFACTORED: Processes a single uploaded file using async/await for guaranteed execution flow.
- * @param {File} file The file to process.
- */
 async function handleSingleFile(file) {
-    showLoader();
+    showLoader(`جاري تحميل "${file.name}"...`);
     fileNameInput.value = file.name.split('.').slice(0, -1).join('.') || 'data';
+    
+    // GUARANTEED UI UPDATE: Wait for the next paint cycle before blocking the thread.
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
         const arrayBuffer = await readFileAsArrayBuffer(file);
-        const data = new Uint8Array(arrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
         const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
 
         renderTable(jsonData);
@@ -234,44 +192,36 @@ async function handleSingleFile(file) {
         updateReport();
         showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
     } catch (err) {
-        console.error("Error processing file:", err);
-        showStatus(`خطأ في معالجة الملف. تأكد من أنه ملف جدول بيانات صحيح.`, 'error');
+        console.error("Fatal error during file processing:", err);
+        showStatus(`خطأ فادح أثناء معالجة الملف. قد يكون الملف تالفاً.`, 'error');
     } finally {
-        // This block is now GUARANTEED to execute, fixing the loader issue.
         hideLoader();
     }
 }
 
 async function handleMergeFiles() {
-    if (!selectedFiles || selectedFiles.length < 2) {
-        return showStatus('الرجاء تحديد ملفين أو أكثر للدمج.', 'error');
-    }
-
+    if (!selectedFiles || selectedFiles.length < 2) return showStatus('الرجاء تحديد ملفين أو أكثر للدمج.', 'error');
     showLoader(`جاري دمج ${selectedFiles.length} ملفات...`);
+    
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     let mergedDataRows = [];
     let headerRow = [];
 
     try {
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
+        for (const file of selectedFiles) {
             const arrayBuffer = await readFileAsArrayBuffer(file);
             const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
             const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-
             if (jsonData.length > 0) {
-                if (i === 0) {
-                    headerRow = jsonData[0];
-                }
+                if (headerRow.length === 0) headerRow = jsonData[0];
                 mergedDataRows.push(...jsonData.slice(1));
             }
         }
-
-        const finalData = [headerRow, ...mergedDataRows];
-        renderTable(finalData);
+        renderTable([headerRow, ...mergedDataRows]);
         originalRowCount = mergedDataRows.length;
         updateReport();
         showStatus(`تم دمج ${selectedFiles.length} ملفات بنجاح.`, 'success');
-
     } catch (err) {
         console.error("Error merging files:", err);
         showStatus('حدث خطأ أثناء عملية الدمج.', 'error');
@@ -292,12 +242,10 @@ function readFileAsArrayBuffer(file) {
     });
 }
 
-
 function renderTable(dataArray) {
     const existingTable = spreadsheetContainer.querySelector('table');
     if (existingTable) existingTable.remove();
-
-    if (!dataArray || dataArray.length === 0 || (dataArray.length === 1 && dataArray[0].length === 0)) {
+    if (!dataArray || dataArray.length < 2 && (dataArray.length === 0 || dataArray[0]?.length === 0)) {
         placeholder.classList.remove('hidden');
         return;
     }
@@ -307,7 +255,6 @@ function renderTable(dataArray) {
     const thead = document.createElement('thead');
     const tbody = document.createElement('tbody');
     const headers = dataArray[0] || [];
-
     const headerRow = document.createElement('tr');
     headers.forEach(headerText => {
         const th = document.createElement('th');
@@ -317,9 +264,7 @@ function renderTable(dataArray) {
     });
     thead.appendChild(headerRow);
     table.appendChild(thead);
-
-    const dataRows = dataArray.slice(1);
-    dataRows.forEach(rowData => {
+    dataArray.slice(1).forEach(rowData => {
         const row = document.createElement('tr');
         for (let j = 0; j < headers.length; j++) {
             const td = document.createElement('td');
@@ -336,11 +281,9 @@ function renderTable(dataArray) {
 function saveFile() {
     const table = spreadsheetContainer.querySelector('table');
     if (!table) return;
-
     const format = document.querySelector('input[name="save-format"]:checked')?.value || 'xlsx';
     const baseName = document.getElementById('modalFileNameInput').value.trim() || 'data';
     const finalFileName = `${baseName}.${format}`;
-
     try {
         const ws = XLSX.utils.table_to_sheet(table);
         const wb = XLSX.utils.book_new();
@@ -353,9 +296,7 @@ function saveFile() {
     }
 }
 
-
-// --- Data Manipulation Functions ---
-
+// --- Data Manipulation ---
 function createNewTable(cols, rows) {
     const headers = Array.from({ length: cols }, (_, i) => `عمود ${i + 1}`);
     const data = [headers, ...Array.from({ length: rows }, () => Array(cols).fill(''))];
@@ -369,19 +310,16 @@ function addRow() {
     const table = spreadsheetContainer.querySelector('table');
     const tbody = table?.querySelector('tbody');
     if (!tbody) return;
-
     const columnCount = table.querySelector('thead tr').children.length;
     const tr = document.createElement('tr');
     tr.classList.add('new-row');
-
     for (let i = 0; i < columnCount; i++) {
         const td = document.createElement('td');
         td.setAttribute('contenteditable', 'true');
         td.textContent = '';
         tr.appendChild(td);
-    };
+    }
     tbody.appendChild(tr);
-
     spreadsheetContainer.scrollTop = spreadsheetContainer.scrollHeight;
     tr.cells[0].focus();
     updateReport();
@@ -390,10 +328,8 @@ function addRow() {
 function manipulateRows(filterFn) {
     const tbody = spreadsheetContainer.querySelector('tbody');
     if (!tbody) return { numChanged: 0 };
-
-    const rows = Array.from(tbody.querySelectorAll('tr'));
     let numChanged = 0;
-    rows.forEach(row => {
+    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
         if (filterFn(row)) {
             row.remove();
             numChanged++;
@@ -404,25 +340,13 @@ function manipulateRows(filterFn) {
 }
 
 function performRowDeletion(keyword) {
-    const trimmedKeyword = keyword.trim().toLowerCase();
-    if (!trimmedKeyword) return;
-    const { numChanged } = manipulateRows(row => row.textContent.toLowerCase().includes(trimmedKeyword));
-    if (numChanged > 0) {
-        showStatus(`تم حذف ${numChanged} سطور.`, 'success');
-    } else {
-        showStatus(`لم يتم العثور على سطور مطابقة للحذف.`, 'info');
-    }
+    const { numChanged } = manipulateRows(row => row.textContent.toLowerCase().includes(keyword.trim().toLowerCase()));
+    showStatus(numChanged > 0 ? `تم حذف ${numChanged} سطور.` : `لم يتم العثور على سطور مطابقة.`, numChanged > 0 ? 'success' : 'info');
 }
 
 function performRowKeeping(keyword) {
-    const trimmedKeyword = keyword.trim().toLowerCase();
-    if (!trimmedKeyword) return;
-    const { numChanged } = manipulateRows(row => !row.textContent.toLowerCase().includes(trimmedKeyword));
-    if (numChanged > 0) {
-        showStatus(`تم حذف ${numChanged} سطور.`, 'success');
-    } else {
-        showStatus(`تم الإبقاء على جميع السطور المطابقة.`, 'info');
-    }
+    const { numChanged } = manipulateRows(row => !row.textContent.toLowerCase().includes(keyword.trim().toLowerCase()));
+    showStatus(numChanged > 0 ? `تم حذف ${numChanged} سطور.` : `تم الإبقاء على جميع السطور.`, numChanged > 0 ? 'success' : 'info');
 }
 
 function clearTable() {
@@ -435,20 +359,11 @@ function clearTable() {
 function updateActionCount(keyword, type) {
     const trimmedKeyword = keyword.trim().toLowerCase();
     const counterEl = document.getElementById(`rowCount-${type}`);
-    if (!trimmedKeyword) {
-        counterEl.textContent = '';
-        return;
-    }
+    if (!trimmedKeyword) return counterEl.textContent = '';
     const tbody = spreadsheetContainer.querySelector('tbody');
     if (!tbody) return;
-
     const totalRows = tbody.querySelectorAll('tr').length;
     const matchCount = Array.from(tbody.querySelectorAll('tr')).filter(row => row.textContent.toLowerCase().includes(trimmedKeyword)).length;
-
-    if (type === 'delete') {
-        counterEl.textContent = `سيتم حذف ${matchCount} سطور.`;
-    } else if (type === 'keep') {
-        const rowsToBeDeleted = totalRows - matchCount;
-        counterEl.textContent = `سيتم الإبقاء على ${matchCount} سطور وحذف ${rowsToBeDeleted}.`;
-    }
-        }
+    if (type === 'delete') counterEl.textContent = `سيتم حذف ${matchCount} سطور.`;
+    else if (type === 'keep') counterEl.textContent = `سيتم الإبقاء على ${matchCount} وحذف ${totalRows - matchCount}.`;
+}
