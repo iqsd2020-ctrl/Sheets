@@ -63,12 +63,10 @@
                 <h3 class="text-lg sm:text-xl font-semibold text-center">منطقة عرض البيانات</h3>
                 <p class="text-sm sm:text-base text-center">اختر ملفًا أو أنشئ جدولاً جديداً لبدء التعديل...</p>
             </div>
+            <!-- Simplified Loader Overlay -->
             <div id="loader-overlay" class="hidden absolute inset-0 bg-white/80 dark:bg-slate-900/80 flex-col items-center justify-center z-20 backdrop-blur-sm transition-opacity duration-300">
-                <div class="relative h-24 w-24 flex items-center justify-center">
-                    <div class="loader ease-linear rounded-full border-8 border-t-8 border-slate-200 dark:border-slate-700 h-full w-full absolute"></div>
-                    <p id="loader-percentage" class="text-lg font-bold text-indigo-600 dark:text-indigo-400">0%</p>
-                </div>
-                <p id="loader-text" class="text-lg font-semibold text-slate-600 dark:text-slate-300 mt-4">جاري تحميل الملف...</p>
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-slate-200 dark:border-slate-700 h-20 w-20"></div>
+                <p id="loader-text" class="text-lg font-semibold text-slate-600 dark:text-slate-300 mt-6">جاري المعالجة...</p>
             </div>
         </div>
 
