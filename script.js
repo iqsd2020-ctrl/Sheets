@@ -1,7 +1,7 @@
 /**
  * Sheets Editor & Merger Application Logic (Arabic RTL)
  * Handles single file loading, multi-file merging, table rendering, data manipulation, and PWA functions.
- * FINAL VERIFIED VERSION
+ * FINAL VERIFIED VERSION - With async/await fix for loader issue.
  */
 
 window.onload = () => {
@@ -64,10 +64,9 @@ function initTheme() {
 }
 
 themeToggleBtn.addEventListener('click', function () {
-    document.documentElement.classList.toggle('dark');
-    const isDark = document.documentElement.classList.contains('dark');
-    themeToggleDarkIcon.classList.toggle('hidden', !isDark);
-    themeToggleLightIcon.classList.toggle('hidden', isDark);
+    const isDark = document.documentElement.classList.toggle('dark');
+    themeToggleDarkIcon.classList.toggle('hidden', isDark);
+    themeToggleLightIcon.classList.toggle('hidden', !isDark);
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
 });
 
@@ -191,10 +190,6 @@ function hideLoader() {
 
 // --- File I/O, Merging, and Rendering ---
 
-/**
- * Handles the file input change event.
- * Differentiates between single file selection and multiple file selection for merging.
- */
 fileInput.addEventListener('change', (event) => {
     const files = event.target.files;
     if (!files || files.length === 0) {
@@ -203,11 +198,9 @@ fileInput.addEventListener('change', (event) => {
     }
 
     if (files.length === 1) {
-        // Single file selected: load it directly.
         resetFileSelection();
-        handleSingleFile(files[0]);
+        handleSingleFile(files[0]); // Call the new async version
     } else {
-        // Multiple files selected: prepare for merging.
         selectedFiles = files;
         fileInputLabel.querySelector('span').textContent = `تم تحديد ${files.length} ملفات`;
         mergeBtn.disabled = false;
@@ -215,49 +208,40 @@ fileInput.addEventListener('change', (event) => {
     }
 });
 
-/**
- * Resets the UI state related to file selection.
- */
 function resetFileSelection() {
     selectedFiles = null;
     fileInputLabel.querySelector('span').textContent = '1. اختر ملفًا أو عدة ملفات';
     mergeBtn.disabled = true;
-    fileInput.value = ''; // Important to allow re-selecting the same file(s).
+    fileInput.value = '';
 }
 
 /**
- * Processes a single uploaded file.
+ * REFACTORED: Processes a single uploaded file using async/await for guaranteed execution flow.
  * @param {File} file The file to process.
  */
-function handleSingleFile(file) {
+async function handleSingleFile(file) {
     showLoader();
     fileNameInput.value = file.name.split('.').slice(0, -1).join('.') || 'data';
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-            
-            renderTable(jsonData);
-            originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
-            updateReport();
-            showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
-        } catch (err) {
-            console.error("Error processing file:", err);
-            showStatus(`خطأ في معالجة الملف.`, 'error');
-        } finally {
-            hideLoader();
-        }
-    };
-    reader.onerror = () => { showStatus(`خطأ في قراءة الملف.`, 'error'); hideLoader(); };
-    reader.readAsArrayBuffer(file);
+    try {
+        const arrayBuffer = await readFileAsArrayBuffer(file);
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
+
+        renderTable(jsonData);
+        originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
+        updateReport();
+        showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
+    } catch (err) {
+        console.error("Error processing file:", err);
+        showStatus(`خطأ في معالجة الملف. تأكد من أنه ملف جدول بيانات صحيح.`, 'error');
+    } finally {
+        // This block is now GUARANTEED to execute, fixing the loader issue.
+        hideLoader();
+    }
 }
 
-/**
- * Reads multiple selected files, merges their data, and renders the result.
- */
 async function handleMergeFiles() {
     if (!selectedFiles || selectedFiles.length < 2) {
         return showStatus('الرجاء تحديد ملفين أو أكثر للدمج.', 'error');
@@ -276,17 +260,15 @@ async function handleMergeFiles() {
 
             if (jsonData.length > 0) {
                 if (i === 0) {
-                    // Use the header from the first file as the master header.
                     headerRow = jsonData[0];
                 }
-                // Add all rows except the header to the merged list.
                 mergedDataRows.push(...jsonData.slice(1));
             }
         }
 
         const finalData = [headerRow, ...mergedDataRows];
         renderTable(finalData);
-        originalRowCount = mergedDataRows.length; // Set the new baseline count.
+        originalRowCount = mergedDataRows.length;
         updateReport();
         showStatus(`تم دمج ${selectedFiles.length} ملفات بنجاح.`, 'success');
 
@@ -301,12 +283,6 @@ async function handleMergeFiles() {
 
 mergeBtn.addEventListener('click', handleMergeFiles);
 
-
-/**
- * Helper function to read a File object as an ArrayBuffer using a Promise.
- * @param {File} file The file to read.
- * @returns {Promise<ArrayBuffer>}
- */
 function readFileAsArrayBuffer(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -475,7 +451,4 @@ function updateActionCount(keyword, type) {
         const rowsToBeDeleted = totalRows - matchCount;
         counterEl.textContent = `سيتم الإبقاء على ${matchCount} سطور وحذف ${rowsToBeDeleted}.`;
     }
-}
-
-
-            
+        }
