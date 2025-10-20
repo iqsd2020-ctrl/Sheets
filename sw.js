@@ -1,16 +1,17 @@
-const CACHE_NAME = 'sheets-editor-cache-v2'; // تم تحديث الإصدار لإجبار التحديث
+const CACHE_NAME = 'sheets-editor-cache-v4'; // Increment version to force update
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
   './script.js',
   './manifest.json',
+  'https://raw.githubusercontent.com/iqsd2020-ctrl/Sheets/main/paper.png',
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js',
   'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'
 ];
 
-// 1. التثبيت: يتم تخزين الملفات الأساسية للتطبيق للعمل دون اتصال
+// Install: Caches essential assets for offline use
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -19,10 +20,10 @@ self.addEventListener('install', event => {
         return cache.addAll(urlsToCache);
       })
   );
-  self.skipWaiting(); // تفعيل عامل الخدمة الجديد فورًا
+  self.skipWaiting(); // Activate new service worker immediately
 });
 
-// 2. التفعيل: يتم حذف ذاكرة التخزين المؤقت القديمة
+// Activate: Deletes old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -36,38 +37,33 @@ self.addEventListener('activate', event => {
       );
     })
   );
-  return self.clients.claim(); // السيطرة على الصفحات المفتوحة فورًا
+  return self.clients.claim(); // Take control of open pages immediately
 });
 
-
-// 3. الجلب (الاستراتيجية الجديدة): الشبكة أولاً، ثم ذاكرة التخزين المؤقت
+// Fetch (Network-first, then cache)
 self.addEventListener('fetch', event => {
-  // تجاهل الطلبات التي ليست من نوع GET
-  if (event.request.method !== 'GET') {
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
     return;
   }
   
   event.respondWith(
-    // 1. محاولة جلب أحدث نسخة من الشبكة
     fetch(event.request)
       .then(networkResponse => {
-        // إذا نجح الطلب، قم بتخزين النسخة الجديدة في ذاكرة التخزين المؤقت
+        // If successful, cache the new response
         const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then(cache => {
           cache.put(event.request, responseToCache);
         });
-        // إرجاع النسخة الجديدة من الشبكة
         return networkResponse;
       })
       .catch(() => {
-        // إذا فشل طلب الشبكة (لا يوجد اتصال)، ابحث في ذاكرة التخزين المؤقت
+        // If network fails, try to get it from the cache
         return caches.match(event.request)
           .then(cachedResponse => {
-            // إذا وجد في ذاكرة التخزين، أرجعه
             if (cachedResponse) {
               return cachedResponse;
             }
-            // يمكنك هنا إرجاع صفحة خطأ مخصصة للعمل دون اتصال إذا أردت
+            // Optional: return a custom offline fallback page here
           });
       })
   );
