@@ -1,12 +1,12 @@
 /**
  * Sheets Editor & Merger Application Logic (Arabic RTL)
- * This version is confirmed to work with the updated "network-first" service worker.
- * All logic is robust and tested.
+ * FINAL ROBUST VERSION - This version removes the 'accept' attribute to fix mobile selection issues
+ * and relies on post-selection validation for file types.
  */
-
 window.onload = () => {
     lucide.createIcons();
     initTheme();
+    // Register the service worker for PWA functionality
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(reg => console.log('Service Worker registered successfully:', reg.scope))
@@ -24,6 +24,8 @@ const spreadsheetContainer = document.getElementById('spreadsheet-container');
 const placeholder = document.getElementById('placeholder');
 const loaderOverlay = document.getElementById('loader-overlay');
 const loaderText = document.getElementById('loader-text');
+const progressBar = document.getElementById('progress-bar');
+const loaderPercentage = document.getElementById('loader-percentage');
 const optionsModal = document.getElementById('optionsModal');
 const newTableModal = document.getElementById('newTableModal');
 const deleteModal = document.getElementById('deleteModal');
@@ -41,6 +43,8 @@ const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 // --- Global State ---
 let originalRowCount = 0;
 let selectedFiles = null;
+let progressInterval = null;
+const ALLOWED_EXTENSIONS = ['csv', 'tsv', 'xls', 'xlsx', 'ods', 'json'];
 
 // --- Theme ---
 function initTheme() {
@@ -146,25 +150,66 @@ function showStatus(message, type = 'info') {
 // --- Loader ---
 function showLoader(text = 'جاري المعالجة...') {
     loaderText.textContent = text;
+    progressBar.style.width = '0%';
+    loaderPercentage.textContent = '0%';
     loaderOverlay.classList.remove('hidden');
+
+    if (progressInterval) clearInterval(progressInterval);
+
+    let progress = 0;
+    progressInterval = setInterval(() => {
+        progress += Math.floor(Math.random() * 5) + 1;
+        if (progress >= 95) {
+            progress = 95;
+            clearInterval(progressInterval);
+        }
+        progressBar.style.width = `${progress}%`;
+        loaderPercentage.textContent = `${progress}%`;
+    }, 150);
 }
 
 function hideLoader() {
-    loaderOverlay.classList.add('hidden');
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
+    
+    progressBar.style.width = '100%';
+    loaderPercentage.textContent = '100%';
+
+    setTimeout(() => {
+        loaderOverlay.classList.add('hidden');
+        setTimeout(() => {
+           progressBar.style.width = '0%';
+           loaderPercentage.textContent = '0%';
+        }, 300);
+    }, 500);
 }
 
-// --- File I/O & Merging ---
+// --- *** NEW ROBUST DATA PROCESSING ENGINE *** ---
+
 fileInput.addEventListener('change', e => {
     const files = e.target.files;
     if (!files || files.length === 0) return resetFileSelection();
-    if (files.length === 1) {
+    
+    const validFiles = Array.from(files).filter(file => {
+        const extension = file.name.split('.').pop().toLowerCase();
+        return ALLOWED_EXTENSIONS.includes(extension);
+    });
+
+    if (validFiles.length !== files.length) {
+        showStatus('تم اختيار ملفات غير مدعومة وتجاهلها.', 'error');
+    }
+    
+    if (validFiles.length === 0) {
         resetFileSelection();
-        handleSingleFile(files[0]);
+        return;
+    }
+
+    if (validFiles.length === 1) {
+        handleSingleFile(validFiles[0]);
     } else {
-        selectedFiles = files;
-        fileInputLabel.querySelector('span').textContent = `تم تحديد ${files.length} ملفات`;
-        mergeBtn.disabled = false;
-        showStatus(`جاهز لدمج ${files.length} ملفات. اضغط على زر الدمج.`, 'info');
+        handleMultipleFiles(validFiles);
     }
 });
 
@@ -177,76 +222,140 @@ function resetFileSelection() {
 
 async function handleSingleFile(file) {
     showLoader(`جاري تحميل "${file.name}"...`);
-    fileNameInput.value = file.name.split('.').slice(0, -1).join('.') || 'data';
-    
-    await new Promise(resolve => setTimeout(resolve, 50)); // Allow UI to update
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
-        const arrayBuffer = await readFileAsArrayBuffer(file);
-        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-
-        renderTable(jsonData);
-        originalRowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
+        const dataAsObjects = await parseFileToObjects(file);
+        const dataAs2dArray = convertObjectsTo2dArray(dataAsObjects);
+        
+        fileNameInput.value = file.name.split('.').slice(0, -1).join('.') || 'data';
+        renderTable(dataAs2dArray);
+        originalRowCount = dataAsObjects.length;
         updateReport();
         showStatus(`تم تحميل "${file.name}" بنجاح.`, 'success');
     } catch (err) {
-        console.error("Fatal error during file processing:", err);
-        showStatus(`خطأ فادح أثناء معالجة الملف. قد يكون الملف تالفاً.`, 'error');
-    } finally {
-        hideLoader();
-    }
-}
-
-async function handleMergeFiles() {
-    if (!selectedFiles || selectedFiles.length < 2) return showStatus('الرجاء تحديد ملفين أو أكثر للدمج.', 'error');
-    showLoader(`جاري دمج ${selectedFiles.length} ملفات...`);
-    
-    await new Promise(resolve => setTimeout(resolve, 50)); // Allow UI to update
-
-    let mergedDataRows = [];
-    let headerRow = [];
-
-    try {
-        for (const file of selectedFiles) {
-            const arrayBuffer = await readFileAsArrayBuffer(file);
-            const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-            if (jsonData.length > 0) {
-                if (headerRow.length === 0) headerRow = jsonData[0];
-                mergedDataRows.push(...jsonData.slice(1));
-            }
-        }
-        renderTable([headerRow, ...mergedDataRows]);
-        originalRowCount = mergedDataRows.length;
-        updateReport();
-        showStatus(`تم دمج ${selectedFiles.length} ملفات بنجاح.`, 'success');
-    } catch (err) {
-        console.error("Error merging files:", err);
-        showStatus('حدث خطأ أثناء عملية الدمج.', 'error');
+        console.error("Error processing single file:", err);
+        showStatus(err.message || 'خطأ فادح أثناء معالجة الملف.', 'error');
     } finally {
         hideLoader();
         resetFileSelection();
     }
 }
+        
+function handleMultipleFiles(files){
+     selectedFiles = files;
+     fileInputLabel.querySelector('span').textContent = `تم تحديد ${files.length} ملفات`;
+     mergeBtn.disabled = false;
+     showStatus(`جاهز لدمج ${files.length} ملفات. اضغط على زر الدمج.`, 'info');
+}
 
-mergeBtn.addEventListener('click', handleMergeFiles);
+mergeBtn.addEventListener('click', async () => {
+     if (!selectedFiles || selectedFiles.length < 2) return showStatus('الرجاء تحديد ملفين أو أكثر للدمج.', 'error');
+     showLoader(`جاري دمج ${selectedFiles.length} ملفات...`);
+     await new Promise(resolve => setTimeout(resolve, 50));
+
+    try {
+        const allObjectsPromises = Array.from(selectedFiles).map(file => parseFileToObjects(file));
+        const allObjectsArrays = await Promise.all(allObjectsPromises);
+        const combinedObjects = allObjectsArrays.flat();
+        
+        const dataAs2dArray = convertObjectsTo2dArray(combinedObjects);
+
+        renderTable(dataAs2dArray);
+        originalRowCount = combinedObjects.length;
+        updateReport();
+        showStatus(`تم دمج ${selectedFiles.length} ملفات بنجاح.`, 'success');
+
+    } catch (err) {
+         console.error("Error merging files:", err);
+         showStatus(err.message || 'حدث خطأ أثناء عملية الدمج.', 'error');
+    } finally {
+        hideLoader();
+        resetFileSelection();
+    }
+});
+
+async function parseFileToObjects(file) {
+    try {
+        const extension = file.name.split('.').pop().toLowerCase();
+        const isTextBased = ['json', 'csv', 'tsv'].includes(extension);
+
+        if (isTextBased) {
+            const text = await readFileAsText(file);
+             if (extension === 'json') {
+                const parsedJson = JSON.parse(text);
+                if (!Array.isArray(parsedJson)) {
+                     throw new Error("ملف JSON غير صالح: يجب أن يحتوي على مصفوفة من الكائنات.");
+                }
+                return parsedJson;
+            } else { // CSV, TSV
+                const workbook = XLSX.read(text, { type: 'string', raw: true });
+                const sheetName = workbook.SheetNames[0];
+                return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+            }
+        } else { // Binary files like XLS, XLSX, ODS
+            const arrayBuffer = await readFileAsArrayBuffer(file);
+            const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        }
+    } catch (e) {
+        console.error(`Failed to parse file ${file.name}:`, e);
+        throw new Error(`فشل في قراءة الملف "${file.name}". قد يكون تالفًا أو بتنسيق غير صحيح.`);
+    }
+}
+
+function convertObjectsTo2dArray(objects) {
+    if (!Array.isArray(objects) || objects.length === 0) {
+        return [];
+    }
+    const headerSet = new Set();
+    objects.forEach(obj => {
+        if (typeof obj === 'object' && obj !== null) {
+            Object.keys(obj).forEach(key => headerSet.add(key));
+        }
+    });
+    if (headerSet.size === 0) { return []; }
+    const headers = Array.from(headerSet);
+    const dataRows = objects.map(obj => {
+        if (typeof obj === 'object' && obj !== null) {
+            return headers.map(header => {
+                const value = obj[header];
+                return (value === null || value === undefined) ? '' : value;
+            });
+        }
+        return Array(headers.length).fill('');
+    });
+    return [headers, ...dataRows];
+}
 
 function readFileAsArrayBuffer(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error);
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e.target.error);
         reader.readAsArrayBuffer(file);
     });
 }
+        
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e.target.error);
+        reader.readAsText(file);
+    });
+}
+
+// --- Rendering & Saving ---
 
 function renderTable(dataArray) {
     const existingTable = spreadsheetContainer.querySelector('table');
     if (existingTable) existingTable.remove();
-    if (!dataArray || dataArray.length < 2 && (dataArray.length === 0 || dataArray[0]?.length === 0)) {
+    
+    if (!dataArray || dataArray.length === 0 || (dataArray.length === 1 && (!dataArray[0] || dataArray[0].length === 0))) {
         placeholder.classList.remove('hidden');
-        originalRowCount = 0; // Reset count if table is empty
+        originalRowCount = 0;
         updateReport();
         return;
     }
@@ -267,9 +376,10 @@ function renderTable(dataArray) {
     table.appendChild(thead);
     dataArray.slice(1).forEach(rowData => {
         const row = document.createElement('tr');
+        const safeRowData = Array.isArray(rowData) ? rowData : [];
         for (let j = 0; j < headers.length; j++) {
             const td = document.createElement('td');
-            td.textContent = (rowData[j] !== null && rowData[j] !== undefined) ? String(rowData[j]) : '';
+            td.textContent = (safeRowData[j] !== null && safeRowData[j] !== undefined) ? String(safeRowData[j]) : '';
             td.setAttribute('contenteditable', 'true');
             row.appendChild(td);
         }
@@ -281,20 +391,60 @@ function renderTable(dataArray) {
 
 function saveFile() {
     const table = spreadsheetContainer.querySelector('table');
-    if (!table) return;
+    if (!table) return showStatus('لا توجد بيانات لتنزيلها!', 'error');
+
     const format = document.querySelector('input[name="save-format"]:checked')?.value || 'xlsx';
     const baseName = document.getElementById('modalFileNameInput').value.trim() || 'data';
     const finalFileName = `${baseName}.${format}`;
+
     try {
-        const ws = XLSX.utils.table_to_sheet(table);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-        XLSX.writeFile(wb, finalFileName, { bookType: format });
+        if (format === 'json') {
+            const jsonData = tableToJson(table);
+            const jsonString = JSON.stringify(jsonData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+            downloadBlob(blob, finalFileName);
+        } else {
+            const ws = XLSX.utils.table_to_sheet(table);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+            XLSX.writeFile(wb, finalFileName, { bookType: format });
+        }
         showStatus(`تم بدء تنزيل "${finalFileName}".`, 'success');
     } catch (err) {
         console.error("Error saving file:", err);
         showStatus(`حدث خطأ أثناء إنشاء الملف.`, 'error');
     }
+}
+        
+function tableToJson(table) {
+    const data = [];
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const rowData = {};
+        const cells = row.querySelectorAll('td');
+        headers.forEach((header, index) => {
+            const cellValue = cells[index]?.textContent.trim() ?? '';
+            if (cellValue !== '' && !isNaN(cellValue) && cellValue.trim() !== '' && !(cellValue.length > 1 && cellValue.startsWith('0') && !cellValue.startsWith('0.'))) {
+                rowData[header] = Number(cellValue);
+            } else {
+                rowData[header] = cellValue;
+            }
+        });
+        data.push(rowData);
+    });
+    return data;
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // --- Data Manipulation ---
@@ -346,25 +496,4 @@ function performRowDeletion(keyword) {
 }
 
 function performRowKeeping(keyword) {
-    const { numChanged } = manipulateRows(row => !row.textContent.toLowerCase().includes(keyword.trim().toLowerCase()));
-    showStatus(numChanged > 0 ? `تم حذف ${numChanged} سطور.` : `تم الإبقاء على جميع السطور.`, numChanged > 0 ? 'success' : 'info');
-}
-
-function clearTable() {
-    renderTable([]);
-}
-
-function updateActionCount(keyword, type) {
-    const trimmedKeyword = keyword.trim().toLowerCase();
-    const counterEl = document.getElementById(`rowCount-${type}`);
-    if (!trimmedKeyword) return counterEl.textContent = '';
-    const tbody = spreadsheetContainer.querySelector('tbody');
-    if (!tbody) return;
-    const totalRows = tbody.querySelectorAll('tr').length;
-    const matchCount = Array.from(tbody.querySelectorAll('tr')).filter(row => row.textContent.toLowerCase().includes(trimmedKeyword)).length;
-    if (type === 'delete') counterEl.textContent = `سيتم حذف ${matchCount} سطور.`;
-    else if (type === 'keep') counterEl.textContent = `سيتم الإبقاء على ${matchCount} وحذف ${totalRows - matchCount}.`;
-}
-
-
-                                                      
+    const { numCha
