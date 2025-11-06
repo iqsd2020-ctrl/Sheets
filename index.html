@@ -2,147 +2,244 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <!-- تعديل: التأكد من وجود viewport meta tag لضمان التوافق مع جميع الأجهزة -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محرر ودمج الجداول المتكامل</title>
+    <title>محرر ودمج الجداول المتكامل (Neumorphism)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts: Cairo (for enhanced Arabic typography) and Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Cairo (for enhanced Arabic typography) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Google Material Symbols Import (Rounded style for modern look) -->
+    <!-- Google Material Symbols Import (Rounded) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
     <style>
-        /* CSS Styling for Single-File Deployment and performance */
+        /* --- Neumorphism Design System --- */
+        :root {
+            --primary-bg: #e0e5ec;
+            --dark-shadow: #a3b1c6;
+            --light-shadow: #ffffff;
+            --text-color: #33373d;
+            --accent-color: #0984e3;
+            --danger-color: #d63031;
+
+            /* ظل العناصر البارزة (للبطاقات والأزرار) */
+            --outset-shadow: 6px 6px 12px var(--dark-shadow), -6px -6px 12px var(--light-shadow);
+
+            /* ظل العناصر الغائرة (لحقول الإدخال أو عند الضغط) */
+            --inset-shadow: inset 6px 6px 12px var(--dark-shadow), inset -6px -6px 12px var(--light-shadow);
+        }
+
         .material-symbols-rounded {
-          /* Default settings for icons */
           font-variation-settings:
           'FILL' 0,
           'wght' 400,
           'GRAD' 0,
           'opsz' 24;
         }
+
         body {
-            /* Use Cairo for primary Arabic text rendering */
-            font-family: 'Cairo', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f7f8fa; /* Very light gray background */
+            font-family: 'Cairo', 'Inter', system-ui, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
         }
+
+        /* --- Neumorphic Components --- */
+
+        .neumorphic-btn {
+            background: var(--primary-bg);
+            box-shadow: var(--outset-shadow);
+            border: none;
+            border-radius: 15px;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            color: var(--text-color);
+            transition: box-shadow 0.2s ease, transform 0.1s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* Space between icon and text */
+        }
+        .neumorphic-btn:hover {
+            transform: translateY(-2px);
+            color: var(--accent-color);
+        }
+        .neumorphic-btn:active {
+            box-shadow: var(--inset-shadow);
+            transform: translateY(1px);
+        }
+        .neumorphic-btn:disabled {
+            opacity: 0.7;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: translateY(0);
+        }
+        /* Button Variants */
+        .neumorphic-btn.accent {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+        .neumorphic-btn.danger {
+            color: var(--danger-color);
+            font-weight: 700;
+        }
+        .neumorphic-btn.danger:hover {
+             color: var(--danger-color);
+             opacity: 0.8;
+        }
+
+        .neumorphic-input {
+            background: var(--primary-bg);
+            box-shadow: var(--inset-shadow);
+            border: none;
+            border-radius: 15px;
+            padding: 0.75rem 1rem;
+            color: var(--text-color);
+            width: 100%;
+            transition: box-shadow 0.2s ease;
+        }
+        .neumorphic-input:focus {
+            outline: none;
+            box-shadow: var(--inset-shadow), 0 0 0 2px var(--accent-color);
+        }
+
+        /* --- Layout Styling --- */
+
+        #main-container {
+            background: var(--primary-bg);
+            box-shadow: var(--outset-shadow);
+            border: none;
+            border-radius: 22px;
+        }
+
         #data-area {
-            /* تعديل: استخدام ارتفاع مرن (vh) ليتناسب مع الشاشات المختلفة */
             overflow: auto;
             max-height: 70vh; 
             min-height: 300px;
-            border-radius: 0.75rem;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); /* Inner shadow for depth */
-            border: 1px solid #e5e7eb;
+            border-radius: 15px;
+            box-shadow: var(--inset-shadow);
+            border: none;
+            padding: 0.5rem; /* Add padding so table doesn't touch edge */
         }
+        
         #dataTable {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.875rem;
         }
+        /* Usability Compromise: Add subtle borders inside the table */
         #dataTable th, #dataTable td {
-            border: 1px solid #e5e7eb;
+            border: 1px solid rgba(163, 177, 198, 0.3);
             padding: 0.75rem;
             text-align: right;
-            transition: background-color 0.1s;
         }
         #dataTable th {
-            background-color: #1e3a8a; /* Darker Blue (Indigo-900) for Header */
+            background-color: var(--accent-color);
             color: #ffffff;
             position: sticky;
             top: 0;
-            z-index: 20; /* Increased z-index */
-            white-space: nowrap;
-            min-width: 120px;
-            cursor: pointer;
+            z-index: 20;
             font-weight: 600;
+            border-radius: 0;
         }
-        #dataTable th:focus {
-            outline: 3px solid #60a5fa; /* Light blue focus ring */
-            outline-offset: -3px;
-            background-color: #172554; /* Even darker on focus */
+        #dataTable th:first-child {
+            border-top-right-radius: 10px;
+        }
+        #dataTable th:last-child {
+            border-top-left-radius: 10px;
         }
         #dataTable td {
-            background-color: #ffffff;
-            white-space: normal;
+            background-color: transparent;
             min-width: 80px;
-            word-wrap: break-word;
         }
         #dataTable td:focus {
-            outline: 2px solid #3b82f6;
+            outline: 2px solid var(--accent-color);
             outline-offset: -2px;
-            background-color: #eff6ff; /* Very light blue background on focus */
-            white-space: normal;
+            background-color: #d1d9e6; /* Light shade */
         }
+
+        /* --- Report & Append Containers --- */
+        #report-container, #append-container {
+            background: var(--primary-bg);
+            border: none;
+            border-radius: 15px;
+            padding: 1.25rem;
+        }
+        #report-container {
+            box-shadow: var(--inset-shadow);
+        }
+        #append-container {
+            box-shadow: var(--outset-shadow);
+        }
+        #report-container .flex {
+            border-bottom: 1px solid rgba(163, 177, 198, 0.3);
+        }
+        #report-container .flex:last-child {
+            border-bottom: none;
+            border-top: 1px solid rgba(163, 177, 198, 0.3);
+        }
+        
+
+        /* --- Modals --- */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
+            /* Use the base color with transparency for a soft blur effect */
+            background-color: rgba(224, 229, 236, 0.7);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 50;
-            backdrop-filter: blur(3px); /* Added blur effect */
+            backdrop-filter: blur(5px);
         }
         .modal-content {
-            background-color: white;
-            padding: 1.5rem; /* تعديل: تقليل البادينغ قليلاً للشاشات الصغيرة */
-            border-radius: 1rem;
-            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.25);
-            width: 95%; /* تعديل: استخدام عرض أكبر للهواتف */
+            background: var(--primary-bg);
+            box-shadow: var(--outset-shadow);
+            border: none;
+            padding: 1.5rem;
+            border-radius: 22px;
+            width: 95%;
             max-width: 500px;
-            transform: translateY(-50px);
-            animation: fadeIn 0.3s forwards;
-            /* إضافة: جعل المحتوى قابلاً للتمرير إذا كان طويلاً جداً على شاشة الهاتف */
             max-height: 90vh; 
             overflow-y: auto;
+            /* Animation */
+            transform: scale(0.9);
+            opacity: 0;
+            animation: modalFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-        @keyframes fadeIn {
+        @keyframes modalFadeIn {
             to {
-                transform: translateY(0);
+                transform: scale(1);
                 opacity: 1;
             }
         }
 
-        /* تعديلات Tailwind CSS لضمان التوافق */
-        /* تم دمجها مباشرة في الكود لضمان التوافق مع طلب المستخدم */
-
     </style>
 
-    <!-- Firebase SDKs for Auth and Firestore -->
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, setLogLevel, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         setLogLevel('Debug');
-
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-
-        let db;
-        let auth;
-        let userId;
-
+        let db, auth, userId;
         window.firebaseReady = false;
         window.db = null;
         window.userId = null;
         window.appId = appId;
-
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             window.db = db;
-
             const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
@@ -150,51 +247,38 @@
                     window.firebaseReady = true;
                 } else {
                     try {
-                        let userCredential;
-                        if (initialAuthToken) {
-                            userCredential = await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            userCredential = await signInAnonymously(auth);
-                        }
+                        let userCredential = initialAuthToken ? await signInWithCustomToken(auth, initialAuthToken) : await signInAnonymously(auth);
                         userId = userCredential.user.uid;
                         window.userId = userId;
                         window.firebaseReady = true;
                     } catch (error) {
                         console.error("Firebase Auth Error:", error);
-                        // Fallback to anonymous sign-in if custom token fails
                         if (initialAuthToken) {
-                             signInAnonymously(auth).then(uc => {
-                                window.userId = uc.user.uid;
-                                window.firebaseReady = true;
-                             }).catch(e => console.error("Final Auth Fail:", e));
+                             signInAnonymously(auth).then(uc => { window.userId = uc.user.uid; window.firebaseReady = true; }).catch(e => console.error("Final Auth Fail:", e));
                         }
                     }
                 }
             });
-
         } catch (error) {
             console.error("Firebase Initialization Failed:", error);
         }
     </script>
-    <!-- SheetJS CDN for high-performance file reading/writing (XLSX, CSV) -->
+    <!-- SheetJS CDN -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 </head>
-<!-- تعديل: استخدام بادينغ مرن (p-4) -->
 <body class="p-4 sm:p-8">
 
-    <!-- تعديل: استخدام max-w-full على الشاشات الصغيرة وتوسيعها على الشاشات الكبيرة -->
-    <div class="max-w-7xl mx-auto bg-white p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-100">
+    <!-- تعديل: إزالة كل فئات bg- white/border/shadow واستبدالها بـ id -->
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 md:p-10" id="main-container">
 
-        <!-- Application Title with Icon -->
-        <!-- تعديل: تصغير حجم الخط ليتناسب مع الهواتف (text-3xl sm:text-5xl) -->
-        <h1 class="text-3xl sm:text-5xl font-extrabold text-indigo-900 mb-2 text-center flex items-center justify-center space-x-3 rtl:space-x-reverse">
-            <!-- تعديل: تصغير حجم الأيقونة للهواتف -->
-            <span class="material-symbols-rounded text-4xl sm:text-6xl text-amber-500" style="font-variation-settings:'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 48;">grid_on</span>
+        <!-- تعديل: استخدام اللون المميز للعنوان والأيقونة -->
+        <h1 class="text-3xl sm:text-5xl font-extrabold mb-2 text-center flex items-center justify-center space-x-3 rtl:space-x-reverse" style="color: var(--accent-color);">
+            <span class="material-symbols-rounded text-4xl sm:text-6xl" style="font-variation-settings:'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 48;">grid_on</span>
             <span>محرر ودمج الجداول</span>
         </h1>
-        <p class="text-center text-gray-600 mb-6 sm:mb-10 text-base sm:text-lg">افتح ملفًا واحدًا للتعديل، أو اختر عدة ملفات لدمجها في جدول واحد.</p>
+        <p class="text-center mb-6 sm:mb-10 text-base sm:text-lg">افتح ملفًا واحدًا للتعديل، أو اختر عدة ملفات لدمجها في جدول واحد.</p>
 
-        <!-- Loading Indicator -->
+        <!-- Loading Indicator (No style change needed) -->
         <div id="loading-indicator" class="hidden fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 transition-opacity duration-300">
             <div class="bg-white p-8 rounded-xl shadow-2xl flex items-center space-x-4 text-xl font-bold text-indigo-700">
                 <svg class="animate-spin -ml-1 mr-3 h-7 w-7 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -208,157 +292,159 @@
         <!-- Hidden File Input -->
         <input type="file" id="file-input" accept=".csv, .xlsx, .xls" multiple class="hidden" onchange="handleFileSelect(event)">
 
-        <!-- Control Panel (Buttons) - Icons updated to Material Symbols -->
-        <!-- تعديل: استخدام grid-cols-2 على الهواتف و grid-cols-5 على الشاشات المتوسطة فما فوق -->
+        <!-- Control Panel (Buttons) - تعديل: تطبيق .neumorphic-btn وإضافة playSound() -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-10">
-            <!-- تعديل: استخدام py-2 و text-sm للهواتف -->
-            <button onclick="createNewTablePreconfirm()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 sm:py-3 px-2 rounded-xl transition duration-300 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm md:text-base">
-                <span class="material-symbols-rounded text-xl rtl:ml-2">note_add</span>
+            
+            <button onclick="playSound('click'); createNewTablePreconfirm()" class="neumorphic-btn accent text-sm md:text-base">
+                <span class="material-symbols-rounded text-xl">note_add</span>
                 <span class="hidden sm:inline">ملف جديد</span>
                 <span class="sm:hidden">جديد</span>
             </button>
 
-            <button onclick="document.getElementById('file-input').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 sm:py-3 px-2 rounded-xl transition duration-300 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm md:text-base">
-                <span class="material-symbols-rounded text-xl rtl:ml-2">folder_open</span>
+            <button onclick="playSound('click'); document.getElementById('file-input').click()" class="neumorphic-btn text-sm md:text-base">
+                <span class="material-symbols-rounded text-xl">folder_open</span>
                 <span class="hidden sm:inline">فتح ملف</span>
                 <span class="sm:hidden">فتح</span>
             </button>
 
-            <button id="merge-btn" onclick="mergeFiles()" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 sm:py-3 px-2 rounded-xl transition duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm md:text-base" disabled>
-                <span class="material-symbols-rounded text-xl rtl:ml-2">call_merge</span>
+            <button id="merge-btn" onclick="playSound('click'); mergeFiles()" class="neumorphic-btn text-sm md:text-base" disabled>
+                <span class="material-symbols-rounded text-xl">call_merge</span>
                 <span class="hidden sm:inline">دمج الملفات</span>
                 <span class="sm:hidden">دمج</span>
             </button>
 
-            <button onclick="saveDataToFirestore()" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 sm:py-3 px-2 rounded-xl transition duration-300 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm md:text-base">
-                <span class="material-symbols-rounded text-xl rtl:ml-2">cloud_upload</span>
+            <button onclick="playSound('click'); saveDataToFirestore()" class="neumorphic-btn text-sm md:text-base">
+                <span class="material-symbols-rounded text-xl">cloud_upload</span>
                 <span class="hidden sm:inline">حفظ الجلسة</span>
                 <span class="sm:hidden">حفظ</span>
             </button>
 
-            <button onclick="showModal('download-modal')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 sm:py-3 px-2 rounded-xl transition duration-300 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 rtl:space-x-reverse text-sm md:text-base">
-                <span class="material-symbols-rounded text-xl rtl:ml-2">download</span>
+            <button onclick="playSound('click'); showModal('download-modal')" class="neumorphic-btn text-sm md:text-base">
+                <span class="material-symbols-rounded text-xl">download</span>
                 <span class="hidden sm:inline">تنزيل الملف</span>
                 <span class="sm:hidden">تنزيل</span>
             </button>
         </div>
 
         <!-- Main Content Area -->
-        <!-- تعديل: استخدام تخطيط عمودي على الهواتف (grid-cols-1) وتخطيط شبكي على الشاشات الكبيرة (lg:grid-cols-4) -->
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
 
-            <!-- Data Display & Options (3/4 Width on large screens) -->
+            <!-- Data Display & Options -->
             <div class="lg:col-span-3 order-2 lg:order-1">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 border-b pb-2 border-indigo-100">منطقة عرض البيانات</h2>
-                <!-- #data-area يتحكم في ارتفاع الجدول لضمان التمرير الرأسي -->
-                <div id="data-area" class="bg-gray-50 rounded-xl shadow-lg overflow-x-auto">
+                <h2 class="text-xl sm:text-2xl font-bold mb-4 border-b pb-2" style="border-color: rgba(163, 177, 198, 0.3);">منطقة عرض البيانات</h2>
+                
+                <!-- تعديل: #data-area يتم تنسيقه الآن بـ CSS -->
+                <div id="data-area" class="overflow-x-auto">
                     <table id="dataTable" class="min-w-full">
                         <tbody id="dataTableBody">
-                            <tr><td colspan="100" class="text-center py-10 text-gray-500">اختر ملفًا، حمّل جلسة، أو أنشئ جدولاً جديداً لبدء التعديل...</td></tr>
+                            <tr><td colspan="100" class="text-center py-10" style="color: var(--text-color); opacity: 0.7;">اختر ملفًا، حمّل جلسة، أو أنشئ جدولاً جديداً لبدء التعديل...</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Edit Options Bar - تعديل: استخدام flex-wrap و gap-2 لضمان التوافق على الهواتف -->
-                <div class="mt-4 sm:mt-6 p-3 sm:p-4 bg-white border border-gray-200 rounded-xl shadow-lg flex flex-wrap justify-center gap-2 sm:gap-3">
-                    <button onclick="loadDataFromFirestore()" class="text-xs sm:text-sm bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-2 sm:px-3 rounded-lg transition duration-200 shadow-md flex items-center">
-                        <span class="material-symbols-rounded text-base rtl:ml-1">cloud_download</span>
+                <!-- Edit Options Bar - تعديل: إزالة الظلال والحدود من الحاوية -->
+                <div class="mt-4 sm:mt-6 p-3 sm:p-4 rounded-xl flex flex-wrap justify-center gap-2 sm:gap-3">
+                    <button onclick="playSound('click'); loadDataFromFirestore()" class="neumorphic-btn text-xs sm:text-sm">
+                        <span class="material-symbols-rounded text-base">cloud_download</span>
                         تحميل المحفوظة
                     </button>
-                    <button onclick="addRow()" class="text-xs sm:text-sm bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-2 sm:px-3 rounded-lg transition duration-200 shadow-md flex items-center">
-                        <span class="material-symbols-rounded text-base rtl:ml-1">add</span>
+                    <button onclick="playSound('click'); addRow()" class="neumorphic-btn text-xs sm:text-sm">
+                        <span class="material-symbols-rounded text-base">add</span>
                         إضافة سطر
                     </button>
-                    <button onclick="showColumnManager()" class="text-xs sm:text-sm bg-cyan-500 hover:bg-cyan-600 text-white font-medium py-2 px-2 sm:px-3 rounded-lg transition duration-200 shadow-md flex items-center">
-                        <span class="material-symbols-rounded text-base rtl:ml-1">view_column</span>
+                    <button onclick="playSound('click'); showColumnManager()" class="neumorphic-btn text-xs sm:text-sm">
+                        <span class="material-symbols-rounded text-base">view_column</span>
                         إدارة الأعمدة
                     </button>
-                    <button onclick="showRemoveDuplicatesModal()" class="text-xs sm:text-sm bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-2 sm:px-3 rounded-lg transition duration-200 shadow-md flex items-center">
-                        <span class="material-symbols-rounded text-base rtl:ml-1">filter_alt_off</span>
+                    <button onclick="playSound('click'); showRemoveDuplicatesModal()" class="neumorphic-btn text-xs sm:text-sm">
+                        <span class="material-symbols-rounded text-base">filter_alt_off</span>
                         إزالة التكرارات
                     </button>
-                    <button onclick="showModal('delete-match-modal')" class="text-xs sm:text-sm bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-2 sm:px-3 rounded-lg transition duration-200 shadow-md flex items-center">
-                        <span class="material-symbols-rounded text-base rtl:ml-1">delete_sweep</span>
+                    <button onclick="playSound('click'); showModal('delete-match-modal')" class="neumorphic-btn danger text-xs sm:text-sm">
+                        <span class="material-symbols-rounded text-base">delete_sweep</span>
                         حذف المطابقة
                     </button>
-                    <button onclick="showModal('keep-match-modal')" class="text-xs sm:text-sm bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-2 sm:px-3 rounded-lg transition duration-200 shadow-md flex items-center">
-                        <span class="material-symbols-rounded text-base rtl:ml-1">filter_alt</span>
+                    <button onclick="playSound('click'); showModal('keep-match-modal')" class="neumorphic-btn text-xs sm:text-sm">
+                        <span class="material-symbols-rounded text-base">filter_alt</span>
                         الإبقاء على المطابقة
                     </button>
-                    <button onclick="clearTablePreconfirm()" class="text-xs sm:text-sm bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-2 sm:px-3 rounded-lg transition duration-200 shadow-md flex items-center">
-                        <span class="material-symbols-rounded text-base rtl:ml-1">clear_all</span>
+                    <button onclick="playSound('click'); clearTablePreconfirm()" class="neumorphic-btn text-xs sm:text-sm">
+                        <span class="material-symbols-rounded text-base">clear_all</span>
                         مسح الجدول
                     </button>
                 </div>
             </div>
 
-            <!-- Change Report and Append Data (1/4 Width on large screens) -->
+            <!-- Change Report and Append Data -->
             <div class="lg:col-span-1 order-1 lg:order-2">
-                <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 border-b pb-2 border-indigo-100">تقرير التغييرات</h3>
-                <div class="bg-indigo-50 p-4 sm:p-6 rounded-xl shadow-inner space-y-3 border border-indigo-200">
-                    <div class="flex justify-between border-b pb-2 border-indigo-100">
-                        <span class="text-gray-600">السطور الأصلية</span>
-                        <span id="report-original" class="font-bold text-gray-800 text-lg">0</span>
+                <h3 class="text-xl sm:text-2xl font-bold mb-4 border-b pb-2" style="border-color: rgba(163, 177, 198, 0.3);">تقرير التغييرات</h3>
+                <!-- تعديل: تطبيق #report-container -->
+                <div class="space-y-3" id="report-container">
+                    <div class="flex justify-between pb-2">
+                        <span>السطور الأصلية</span>
+                        <span id="report-original" class="font-bold text-lg">0</span>
                     </div>
-                    <div class="flex justify-between border-b pb-2 border-indigo-100">
-                        <span class="text-gray-600">سطور مضافة</span>
+                    <div class="flex justify-between pb-2">
+                        <span>سطور مضافة</span>
                         <span id="report-added" class="font-bold text-green-600 text-lg">0</span>
                     </div>
-                    <div class="flex justify-between border-b pb-2 border-indigo-100">
-                        <span class="text-gray-600">سطور محذوفة</span>
+                    <div class="flex justify-between pb-2">
+                        <span>سطور محذوفة</span>
                         <span id="report-deleted" class="font-bold text-red-600 text-lg">0</span>
                     </div>
-                    <div class="flex justify-between pt-2 border-t border-indigo-300">
-                        <span class="text-lg font-extrabold text-indigo-700">الإجمالي المتبقي</span>
-                        <span id="report-total" class="text-2xl font-extrabold text-indigo-600">0</span>
+                    <div class="flex justify-between pt-2">
+                        <span class="text-lg font-extrabold" style="color: var(--accent-color);">الإجمالي المتبقي</span>
+                        <span id="report-total" class="text-2xl font-extrabold" style="color: var(--accent-color);">0</span>
                     </div>
                 </div>
 
-                <!-- New Feature: Append Data Section -->
-                <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 mt-6 sm:mt-8 border-b pb-2 border-indigo-100">إضافة بيانات يدوية/ملف</h3>
-                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg space-y-4 border border-indigo-300">
-                    <p class="text-xs sm:text-sm text-gray-600">أدخل بيانات جديدة (سطر لكل سجل، استخدم الفواصل أو التاب للفصل بين الأعمدة).</p>
-                    <textarea id="manual-data-input" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="مثال: القيمة1,القيمة2,القيمة3"></textarea>
+                <!-- Append Data Section -->
+                <h3 class="text-xl sm:text-2xl font-bold mb-4 mt-6 sm:mt-8 border-b pb-2" style="border-color: rgba(163, 177, 198, 0.3);">إضافة بيانات يدوية/ملف</h3>
+                <!-- تعديل: تطبيق #append-container -->
+                <div class="space-y-4" id="append-container">
+                    <p class="text-xs sm:text-sm opacity-70">أدخل بيانات جديدة (سطر لكل سجل، استخدم الفواصل أو التاب للفصل بين الأعمدة).</p>
+                    <!-- تعديل: تطبيق .neumorphic-input -->
+                    <textarea id="manual-data-input" rows="4" class="neumorphic-input" placeholder="مثال: القيمة1,القيمة2,القيمة3"></textarea>
 
-                    <button onclick="appendManualData()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 shadow-md text-sm" id="append-manual-btn" disabled>
+                    <button onclick="playSound('click'); appendManualData()" class="neumorphic-btn accent w-full text-sm" id="append-manual-btn" disabled>
                         إضافة البيانات يدوياً
                     </button>
 
-                    <div class="pt-4 border-t mt-4 border-gray-200">
-                        <p class="text-xs sm:text-sm text-gray-600 mb-2">أو قم برفع ملف (CSV/XLSX) لإضافة محتواه:</p>
+                    <div class="pt-4 border-t mt-4" style="border-color: rgba(163, 177, 198, 0.3);">
+                        <p class="text-xs sm:text-sm opacity-70 mb-2">أو قم برفع ملف (CSV/XLSX) لإضافة محتواه:</p>
                         <input type="file" id="append-file-input" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleAppendFileSelect(event)">
-                        <button onclick="document.getElementById('append-file-input').click()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 shadow-md text-sm" id="append-file-btn" disabled>
+                        <button onclick="playSound('click'); document.getElementById('append-file-input').click()" class="neumorphic-btn w-full text-sm" id="append-file-btn" disabled>
                             رفع ملف وإضافة المحتوى
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- Modals Section -->
+    <!-- تعديل: .modal-content و .neumorphic-input و .neumorphic-btn تم تطبيقها على جميع النوافذ -->
 
     <!-- Modal 1: Create Table -->
     <div id="create-table-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">إنشاء جدول جديد</h3>
-            <p class="text-red-600 mb-4 bg-red-50 p-3 rounded-lg border border-red-200 text-sm">تحذير: هذا سيؤدي إلى مسح أي بيانات غير محفوظة حاليًا.</p>
+            <h3 class="text-xl sm:text-2xl font-bold mb-4">إنشاء جدول جديد</h3>
+            <p class="text-sm mb-4 p-3 rounded-lg" style="background-color: rgba(214, 48, 49, 0.1); color: var(--danger-color);">تحذير: هذا سيؤدي إلى مسح أي بيانات غير محفوظة حاليًا.</p>
             <div class="space-y-4">
                 <div>
-                    <label for="new-cols" class="block text-sm font-medium text-gray-700 mb-1">عدد الأعمدة:</label>
-                    <input type="number" id="new-cols" value="4" min="1" class="w-full border-gray-300 rounded-lg shadow-sm p-3 border focus:ring-amber-500 focus:border-amber-500">
+                    <label for="new-cols" class="block text-sm font-medium mb-1 opacity-70">عدد الأعمدة:</label>
+                    <input type="number" id="new-cols" value="4" min="1" class="neumorphic-input">
                 </div>
                 <div>
-                    <label for="new-rows" class="block text-sm font-medium text-gray-700 mb-1">عدد السطور:</label>
-                    <input type="number" id="new-rows" value="5" min="1" class="w-full border-gray-300 rounded-lg shadow-sm p-3 border focus:ring-amber-500 focus:border-amber-500">
+                    <label for="new-rows" class="block text-sm font-medium mb-1 opacity-70">عدد السطور:</label>
+                    <input type="number" id="new-rows" value="5" min="1" class="neumorphic-input">
                 </div>
             </div>
             <div class="mt-6 flex justify-end space-x-3 rtl:space-x-reverse">
-                <button onclick="hideModal('create-table-modal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); hideModal('create-table-modal')" class="neumorphic-btn text-sm">
                     إلغاء
                 </button>
-                <button onclick="createNewTable()" class="bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); createNewTable()" class="neumorphic-btn accent text-sm">
                     إنشاء ومسح
                 </button>
             </div>
@@ -368,17 +454,17 @@
     <!-- Modal 2: Delete Matching Rows -->
     <div id="delete-match-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">حذف السطور المطابقة</h3>
-            <p class="text-gray-600 mb-4 text-sm">أدخل كلمة أو عبارة مفتاحية. سيتم حذف أي سطر يحتوي عليها.</p>
+            <h3 class="text-xl sm:text-2xl font-bold mb-4">حذف السطور المطابقة</h3>
+            <p class="text-sm opacity-70 mb-4">أدخل كلمة أو عبارة مفتاحية. سيتم حذف أي سطر يحتوي عليها.</p>
             <div>
-                <label for="delete-keyword" class="block text-sm font-medium text-gray-700 mb-1">الكلمة/العبارة المفتاحية:</label>
-                <input type="text" id="delete-keyword" placeholder="النص المراد حذفه..." class="w-full border-gray-300 rounded-lg shadow-sm p-3 border focus:ring-red-500 focus:border-red-500">
+                <label for="delete-keyword" class="block text-sm font-medium mb-1 opacity-70">الكلمة/العبارة المفتاحية:</label>
+                <input type="text" id="delete-keyword" placeholder="النص المراد حذفه..." class="neumorphic-input">
             </div>
             <div class="mt-6 flex justify-end space-x-3 rtl:space-x-reverse">
-                <button onclick="hideModal('delete-match-modal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); hideModal('delete-match-modal')" class="neumorphic-btn text-sm">
                     إلغاء
                 </button>
-                <button onclick="filterTable('delete')" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); filterTable('delete')" class="neumorphic-btn danger text-sm">
                     تأكيد الحذف
                 </button>
             </div>
@@ -388,17 +474,17 @@
     <!-- Modal 3: Keep Matching Rows Only -->
     <div id="keep-match-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">الإبقاء على السطور المطابقة فقط</h3>
-            <p class="text-gray-600 mb-4 text-sm">أدخل كلمة أو عبارة مفتاحية. سيتم حذف كل السطور *التي لا* تحتوي عليها.</p>
+            <h3 class="text-xl sm:text-2xl font-bold mb-4">الإبقاء على السطور المطابقة فقط</h3>
+            <p class="text-sm opacity-70 mb-4">أدخل كلمة أو عبارة مفتاحية. سيتم حذف كل السطور *التي لا* تحتوي عليها.</p>
             <div>
-                <label for="keep-keyword" class="block text-sm font-medium text-gray-700 mb-1">الكلمة/العبارة المفتاحية:</label>
-                <input type="text" id="keep-keyword" placeholder="النص المراد الإبقاء عليه..." class="w-full border-gray-300 rounded-lg shadow-sm p-3 border focus:ring-purple-500 focus:border-purple-500">
+                <label for="keep-keyword" class="block text-sm font-medium mb-1 opacity-70">الكلمة/العبارة المفتاحية:</label>
+                <input type="text" id="keep-keyword" placeholder="النص المراد الإبقاء عليه..." class="neumorphic-input">
             </div>
             <div class="mt-6 flex justify-end space-x-3 rtl:space-x-reverse">
-                <button onclick="hideModal('keep-match-modal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); hideModal('keep-match-modal')" class="neumorphic-btn text-sm">
                     إلغاء
                 </button>
-                <button onclick="filterTable('keep')" class="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); filterTable('keep')" class="neumorphic-btn accent text-sm">
                     تأكيد الإبقاء
                 </button>
             </div>
@@ -408,35 +494,30 @@
     <!-- Modal 4: Download Options -->
     <div id="download-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">حفظ وتنزيل الملف</h3>
-
-            <!-- Filename Input -->
+            <h3 class="text-xl sm:text-2xl font-bold mb-4">حفظ وتنزيل الملف</h3>
             <div class="mb-4">
-                <label for="download-filename" class="block text-sm font-medium text-gray-700 mb-1">اسم الملف:</label>
-                <input type="text" id="download-filename" value="جدول_معدل" class="w-full border-gray-300 rounded-lg shadow-sm p-3 border focus:ring-green-500 focus:border-green-500">
+                <label for="download-filename" class="block text-sm font-medium mb-1 opacity-70">اسم الملف:</label>
+                <input type="text" id="download-filename" value="جدول_معدل" class="neumorphic-input">
             </div>
-
-            <!-- Format Selection -->
-            <div class="space-y-3 p-3 bg-gray-50 rounded-lg">
+            <div class="space-y-3 p-3 rounded-lg" style="box-shadow: var(--inset-shadow);">
                 <label class="flex items-center space-x-3 rtl:space-x-reverse text-sm">
-                    <input type="radio" name="file-format" value="xlsx" checked class="form-radio h-4 w-4 text-green-600 border-gray-300">
-                    <span class="text-gray-700 font-medium">Excel (.xlsx) - أفضل خيار</span>
+                    <input type="radio" name="file-format" value="xlsx" checked class="form-radio h-4 w-4" style="color: var(--accent-color);">
+                    <span class="font-medium">Excel (.xlsx) - أفضل خيار</span>
                 </label>
                 <label class="flex items-center space-x-3 rtl:space-x-reverse text-sm">
-                    <input type="radio" name="file-format" value="csv" class="form-radio h-4 w-4 text-green-600 border-gray-300">
-                    <span class="text-gray-700 font-medium">Comma Separated Values (.csv) - نص عادي</span>
+                    <input type="radio" name="file-format" value="csv" class="form-radio h-4 w-4" style="color: var(--accent-color);">
+                    <span class="font-medium">Comma Separated Values (.csv)</span>
                 </label>
                 <label class="flex items-center space-x-3 rtl:space-x-reverse text-sm">
-                    <input type="radio" name="file-format" value="json" class="form-radio h-4 w-4 text-green-600 border-gray-300">
-                    <span class="text-gray-700 font-medium">JSON (.json) - للاستخدام البرمجي</span>
+                    <input type="radio" name="file-format" value="json" class="form-radio h-4 w-4" style="color: var(--accent-color);">
+                    <span class="font-medium">JSON (.json) - للاستخدام البرمجي</span>
                 </label>
             </div>
-
             <div class="mt-6 flex justify-end space-x-3 rtl:space-x-reverse">
-                <button onclick="hideModal('download-modal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); hideModal('download-modal')" class="neumorphic-btn text-sm">
                     إلغاء
                 </button>
-                <button onclick="downloadFile()" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); downloadFile()" class="neumorphic-btn accent text-sm">
                     بدء التنزيل
                 </button>
             </div>
@@ -446,26 +527,26 @@
     <!-- Modal 5: Manage Columns -->
     <div id="manage-columns-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">إدارة الأعمدة</h3>
-            <p class="text-gray-600 mb-4 text-sm">أضف أو احذف الأعمدة من الجدول.</p>
+            <h3 class="text-xl sm:text-2xl font-bold mb-4">إدارة الأعمدة</h3>
+            <p class="text-sm opacity-70 mb-4">أضف أو احذف الأعمدة من الجدول.</p>
             <div class="space-y-4">
                 <div>
-                    <button onclick="performAddColumn()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 shadow-md flex items-center justify-center text-sm">
-                        <span class="material-symbols-rounded text-xl rtl:ml-2">add_box</span>
+                    <button onclick="playSound('click'); performAddColumn()" class="neumorphic-btn w-full text-sm">
+                        <span class="material-symbols-rounded text-xl">add_box</span>
                         إضافة عمود جديد
                     </button>
                 </div>
-                <div id="remove-col-container" class="p-4 bg-red-50 rounded-lg border border-red-200">
-                    <label for="remove-col-select" class="block text-sm font-medium text-gray-700 mb-1">اختر عموداً للحذف:</label>
-                    <select id="remove-col-select" class="w-full border-gray-300 rounded-lg shadow-sm p-3 border focus:ring-red-500 focus:border-red-500 text-sm"></select>
-                    <button onclick="performRemoveColumn()" class="w-full mt-3 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 shadow-md flex items-center justify-center text-sm" id="remove-col-btn">
-                        <span class="material-symbols-rounded text-xl rtl:ml-2">delete</span>
+                <div id="remove-col-container" class="p-4 rounded-lg" style="box-shadow: var(--inset-shadow);">
+                    <label for="remove-col-select" class="block text-sm font-medium mb-1 opacity-70">اختر عموداً للحذف:</label>
+                    <select id="remove-col-select" class="neumorphic-input text-sm"></select>
+                    <button onclick="playSound('click'); performRemoveColumn()" class="neumorphic-btn danger w-full mt-3 text-sm" id="remove-col-btn">
+                        <span class="material-symbols-rounded text-xl">delete</span>
                         حذف العمود المحدد
                     </button>
                 </div>
             </div>
             <div class="mt-6 flex justify-end">
-                <button onclick="hideModal('manage-columns-modal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); hideModal('manage-columns-modal')" class="neumorphic-btn text-sm">
                     إغلاق
                 </button>
             </div>
@@ -475,24 +556,24 @@
     <!-- Modal 6: Remove Duplicates -->
     <div id="remove-duplicates-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="text-xl sm:text-2xl font-bold mb-4 text-gray-800">إزالة السطور المكررة</h3>
-            <p class="text-gray-600 mb-4 text-sm">اختر طريقة تحديد التكرار:</p>
-            <div class="space-y-4 p-4 bg-pink-50 rounded-lg border border-pink-200 text-sm">
+            <h3 class="text-xl sm:text-2xl font-bold mb-4">إزالة السطور المكررة</h3>
+            <p class="text-sm opacity-70 mb-4">اختر طريقة تحديد التكرار:</p>
+            <div class="space-y-4 p-4 rounded-lg text-sm" style="box-shadow: var(--inset-shadow);">
                 <label class="flex items-center space-x-3 rtl:space-x-reverse">
-                    <input type="radio" name="duplicate-mode" value="all" checked class="form-radio h-4 w-4 text-pink-600 border-gray-300">
-                    <span class="text-gray-700 font-medium">تكرار السطر بالكامل (كل الأعمدة)</span>
+                    <input type="radio" name="duplicate-mode" value="all" checked class="form-radio h-4 w-4" style="color: var(--accent-color);">
+                    <span class="font-medium">تكرار السطر بالكامل (كل الأعمدة)</span>
                 </label>
                 <label class="block">
-                    <input type="radio" name="duplicate-mode" value="column" class="form-radio h-4 w-4 text-pink-600 rtl:ml-2 border-gray-300">
-                    <span class="text-gray-700 font-medium">تكرار بناءً على عمود محدد:</span>
-                    <select id="duplicate-col-select" class="w-full mt-2 border-gray-300 rounded-lg shadow-sm p-3 border focus:ring-pink-500 focus:border-pink-500 disabled:bg-gray-100 text-sm"></select>
+                    <input type="radio" name="duplicate-mode" value="column" class="form-radio h-4 w-4 rtl:ml-2" style="color: var(--accent-color);">
+                    <span class="font-medium">تكرار بناءً على عمود محدد:</span>
+                    <select id="duplicate-col-select" class="neumorphic-input w-full mt-2 text-sm"></select>
                 </label>
             </div>
             <div class="mt-6 flex justify-end space-x-3 rtl:space-x-reverse">
-                <button onclick="hideModal('remove-duplicates-modal')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); hideModal('remove-duplicates-modal')" class="neumorphic-btn text-sm">
                     إلغاء
                 </button>
-                <button onclick="removeDuplicates()" class="bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); removeDuplicates()" class="neumorphic-btn accent text-sm">
                     تأكيد الإزالة
                 </button>
             </div>
@@ -502,10 +583,10 @@
     <!-- Message Box (Custom Confirmation / Alert) -->
     <div id="message-box" class="modal-overlay">
         <div class="modal-content">
-            <h3 id="message-title" class="text-xl sm:text-2xl font-bold mb-4 text-gray-800"></h3>
-            <p id="message-text" class="text-gray-600 mb-4 text-sm"></p>
+            <h3 id="message-title" class="text-xl sm:text-2xl font-bold mb-4"></h3>
+            <p id="message-text" class="text-sm opacity-70 mb-4"></p>
             <div class="mt-6 flex justify-end">
-                <button onclick="hideModal('message-box')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); hideModal('message-box')" class="neumorphic-btn accent text-sm">
                     إغلاق
                 </button>
             </div>
@@ -514,14 +595,83 @@
 
 
     <script>
-        // JavaScript Logic - Global Scope for high performance
+        // JavaScript Logic - Global Scope
 
         let currentData = [];
         let originalData = [];
         let loadedFiles = [];
         let fileBuffers = [];
 
-        // Helper function for deep cloning an array (used for originalData copy)
+        // --- Audio Context for Neumorphism Sound Effects ---
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        // Add a click listener to init audio on first user interaction
+        document.body.addEventListener('click', initAudio, { once: true });
+        document.body.addEventListener('touchstart', initAudio, { once: true });
+
+        /**
+         * Plays a generated sound effect.
+         * @param {string} type - 'click', 'open', 'confirm', 'error'
+         */
+        function playSound(type = 'click') {
+            if (!audioCtx) {
+                console.warn("Audio context not initialized.");
+                return;
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Master volume
+
+            if (type === 'click') {
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'open') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'confirm') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.1);
+                // Second tone
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                gain2.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.1);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                osc2.start(audioCtx.currentTime + 0.1);
+                osc2.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'error') {
+                 oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+        // Make playSound globally accessible
+        window.playSound = playSound;
+        // --- End Audio Context ---
+
+
         const deepClone = (arr) => JSON.parse(JSON.stringify(arr));
 
         // --- UI Utility Functions ---
@@ -532,34 +682,44 @@
                 if (id === 'message-box') {
                     document.getElementById('message-title').textContent = title;
                     document.getElementById('message-text').textContent = text;
+                    // Play confirm or error sound based on title
+                    if (title.includes('فشل') || title.includes('خطأ') || title.includes('تحذير')) {
+                        playSound('error');
+                    } else if (title.includes('نجاح') || title.includes('تم')) {
+                        playSound('confirm');
+                    } else {
+                        playSound('open');
+                    }
+                } else {
+                    playSound('open');
                 }
                 modal.style.display = 'flex';
             }
         }
 
         function hideModal(id) {
+            // playSound('click') is already on the close button, no need to double it
             const modal = document.getElementById(id);
             if (modal) {
                 modal.style.display = 'none';
-                // Reset custom buttons if the message box is closed
                 if (id === 'message-box') {
                     const footer = modal.querySelector('.mt-6.flex.justify-end');
-                    footer.innerHTML = `<button onclick="hideModal('message-box')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">إغلاق</button>`;
+                    // Reset to default button
+                    footer.innerHTML = `<button onclick="playSound('click'); hideModal('message-box')" class="neumorphic-btn accent text-sm">إغلاق</button>`;
                 }
             }
         }
 
         function toggleLoading(show) {
+            if (show) playSound('open');
             document.getElementById('loading-indicator').classList.toggle('hidden', !show);
         }
 
         function updateChangeReport() {
             const originalCount = originalData.length > 0 ? originalData.length - 1 : 0;
             const currentCount = currentData.length > 0 ? currentData.length - 1 : 0;
-
             const added = Math.max(0, currentCount - originalCount);
             const deleted = Math.max(0, originalCount - currentCount);
-
             document.getElementById('report-original').textContent = originalCount;
             document.getElementById('report-added').textContent = added;
             document.getElementById('report-deleted').textContent = deleted;
@@ -572,15 +732,10 @@
             document.getElementById('append-file-btn').disabled = !hasData;
         }
 
-        /**
-         * Renders the table using efficient DOM manipulation for responsiveness.
-         */
         function renderTable() {
             const tableBody = document.getElementById('dataTableBody');
-
-            // Minimal update check
             if (currentData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="100" class="text-center py-10 text-gray-500">اختر ملفًا، حمّل جلسة، أو أنشئ جدولاً جديداً لبدء التعديل...</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="100" class="text-center py-10" style="color: var(--text-color); opacity: 0.7;">اختر ملفًا، حمّل جلسة، أو أنشئ جدولاً جديداً لبدء التعديل...</td></tr>';
                 document.getElementById('merge-btn').disabled = fileBuffers.length < 2;
                 updateChangeReport();
                 updateAppendControls();
@@ -590,24 +745,19 @@
             const colCount = currentData[0].length;
             const fragment = document.createDocumentFragment();
 
-            // 1. Create Header Row (stuck to table head if table element was used, but sticking to tbody here)
+            // Header Row
             const headerRow = document.createElement('tr');
-            headerRow.classList.add('bg-gray-800', 'text-white', 'sticky', 'top-0');
             currentData[0].forEach((headerText, index) => {
                 const th = document.createElement('th');
                 th.textContent = String(headerText || `عمود ${index + 1}`).trim();
-
-                // Make headers editable
                 th.contentEditable = true;
-                th.classList.add('cursor-pointer', 'hover:bg-gray-700');
                 th.dataset.colIndex = index;
                 th.oninput = (event) => updateHeaderCell(event.target, index);
-
                 headerRow.appendChild(th);
             });
             fragment.appendChild(headerRow);
 
-            // 2. Create Data Rows (start from index 1)
+            // Data Rows
             for (let i = 1; i < currentData.length; i++) {
                 const dataRow = document.createElement('tr');
                 for (let j = 0; j < colCount; j++) {
@@ -615,7 +765,6 @@
                     const td = document.createElement('td');
                     td.textContent = String(cellData);
                     td.contentEditable = true;
-                    td.classList.add('p-3', 'focus:ring-2', 'focus:ring-blue-500', 'focus:bg-blue-50', 'transition', 'duration-100');
                     td.dataset.rowIndex = i;
                     td.dataset.colIndex = j;
                     td.oninput = (event) => updateDataCell(event.target, i, j);
@@ -624,152 +773,97 @@
                 fragment.appendChild(dataRow);
             }
 
-            // Replace old content with the new fragment in a single DOM operation
             tableBody.innerHTML = '';
             tableBody.appendChild(fragment);
-
             document.getElementById('merge-btn').disabled = fileBuffers.length < 2;
             updateChangeReport();
             updateAppendControls();
         }
 
         function updateHeaderCell(cell, col) {
-            const newValue = String(cell.textContent);
-            if (currentData.length > 0 && currentData[0][col] !== undefined) {
-                currentData[0][col] = newValue;
-            }
+            currentData[0][col] = String(cell.textContent);
         }
 
         function updateDataCell(cell, row, col) {
-            // Convert to string before assignment for consistency
             const newValue = String(cell.textContent);
-            if (currentData[row] && currentData[row][col] !== undefined) {
-                currentData[row][col] = newValue;
-            } else if (currentData[row]) {
-                 // Defensive code: handle case where row array is shorter than col index
-                const currentCols = currentData[0].length;
-                 while(currentData[row].length < currentCols) {
-                     currentData[row].push('');
-                 }
+            if (currentData[row]) {
                 currentData[row][col] = newValue;
             }
         }
 
         // --- Core Application Logic (File I/O and Merge) ---
 
-        /**
-         * Handles file selection and parsing asynchronously.
-         */
         async function handleFileSelect(event) {
             const files = event.target.files;
             if (files.length === 0) return;
-
             toggleLoading(true);
-
             loadedFiles = [];
             fileBuffers = [];
-
             if (files.length === 1) {
                 currentData = [];
                 originalData = [];
             }
-
-            const totalFiles = files.length;
-            let promises = [];
-
-            Array.from(files).forEach((file) => {
-                promises.push(new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            const arrayBuffer = e.target.result;
-                            fileBuffers.push(arrayBuffer);
-
-                            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                            const sheetName = workbook.SheetNames[0];
-                            const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-
-                            resolve({ filename: file.name, data: sheetData });
-
-                        } catch (error) {
-                            console.error(`Error processing file ${file.name}:`, error);
-                            // Resolve with null to skip this file
-                            resolve(null);
-                        }
-                    };
-
-                    reader.onerror = () => resolve(null); // Resolve with null on read error
-                    reader.readAsArrayBuffer(file);
-                }));
-            });
-
-            // Wait for all files to be processed
-            const results = (await Promise.all(promises)).filter(result => result !== null);
+            let promises = Array.from(files).map((file) => new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const arrayBuffer = e.target.result;
+                        fileBuffers.push(arrayBuffer);
+                        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+                        resolve({ filename: file.name, data: sheetData });
+                    } catch (error) { resolve(null); }
+                };
+                reader.onerror = () => resolve(null);
+                reader.readAsArrayBuffer(file);
+            }));
+            const results = (await Promise.all(promises)).filter(r => r !== null);
             loadedFiles = results;
-
             toggleLoading(false);
-
             if (loadedFiles.length === 1) {
                 currentData = loadedFiles[0].data;
                 originalData = deepClone(currentData);
                 renderTable();
+                playSound('confirm');
             } else if (loadedFiles.length > 1) {
                 document.getElementById('merge-btn').disabled = false;
                 showModal('message-box', 'ملفات متعددة جاهزة', `تم تحميل ${loadedFiles.length} ملفات بنجاح. اضغط على "دمج الملفات المحددة" لتوحيدها.`);
             } else {
                  showModal('message-box', 'فشل التحميل', 'لم يتم تحميل أي ملفات بنجاح. تأكد من أن التنسيق صحيح (.xlsx, .csv).');
             }
-
             event.target.value = '';
         }
 
-        /**
-         * Merges all loaded file data, padding/trimming rows to match the main header.
-         */
         function mergeFiles() {
             if (loadedFiles.length < 2) {
                 showModal('message-box', 'فشل الدمج', 'الرجاء اختيار ملفين على الأقل للدمج.');
                 return;
             }
-
             toggleLoading(true);
             let mergedData = [];
-
             if (loadedFiles[0].data.length === 0) {
                  toggleLoading(false);
                  showModal('message-box', 'خطأ في الملف الأول', 'الملف الأول فارغ ولا يمكن استخدامه لتحديد العناوين.');
                  return;
             }
-
             const headers = loadedFiles[0].data[0];
             const headerLength = headers.length;
             mergedData.push(headers);
-
-            // Use Array.prototype.flatMap for efficient, single-pass merging
             const dataRows = loadedFiles.flatMap(file => {
-                // Ensure file data exists and has data rows
                 if (file.data.length <= 1) return [];
-
-                const rowsToMerge = file.data.slice(1); // Exclude header
-
+                const rowsToMerge = file.data.slice(1);
                 return rowsToMerge.map(row => {
-                    // Normalize row length to match header length
-                    if (row.length < headerLength) {
-                        return row.concat(Array(headerLength - row.length).fill(''));
-                    } else if (row.length > headerLength) {
-                        return row.slice(0, headerLength);
-                    }
+                    if (row.length < headerLength) return row.concat(Array(headerLength - row.length).fill(''));
+                    if (row.length > headerLength) return row.slice(0, headerLength);
                     return row;
                 });
             });
-
             currentData = mergedData.concat(dataRows);
             originalData = deepClone(currentData);
             loadedFiles = [];
             fileBuffers = [];
             document.getElementById('merge-btn').disabled = true;
-
-            // Use setTimeout to ensure UI remains responsive during the merge result display
             setTimeout(() => {
                 renderTable();
                 toggleLoading(false);
@@ -787,34 +881,19 @@
             const inputElement = document.getElementById('manual-data-input');
             const rawText = inputElement.value.trim();
             if (!rawText) return;
-
             toggleLoading(true);
             const headerLength = currentData[0].length;
             const newRows = [];
-
-            // Simple parsing: split by newline, then try to detect delimiter (comma or tab)
             rawText.split('\n').forEach(line => {
                 if (line.trim() === '') return;
-                let cells;
-                if (line.includes('\t')) {
-                    cells = line.split('\t').map(c => c.trim());
-                } else {
-                    // Fallback to comma separation
-                    cells = line.split(',').map(c => c.trim());
-                }
-
-                // Normalize row length
-                if (cells.length > headerLength) {
-                    cells = cells.slice(0, headerLength);
-                } else if (cells.length < headerLength) {
-                    cells = cells.concat(Array(headerLength - cells.length).fill(''));
-                }
+                let cells = line.includes('\t') ? line.split('\t') : line.split(',');
+                cells = cells.map(c => c.trim());
+                if (cells.length > headerLength) cells = cells.slice(0, headerLength);
+                else if (cells.length < headerLength) cells = cells.concat(Array(headerLength - cells.length).fill(''));
                 newRows.push(cells);
             });
-
             currentData = currentData.concat(newRows);
-            inputElement.value = ''; // Clear input
-
+            inputElement.value = '';
             setTimeout(() => {
                 renderTable();
                 toggleLoading(false);
@@ -824,142 +903,103 @@
 
         async function handleAppendFileSelect(event) {
             const files = event.target.files;
-            if (files.length === 0 || currentData.length === 0) {
-                event.target.value = '';
-                return;
-            }
-
+            if (files.length === 0 || currentData.length === 0) { event.target.value = ''; return; }
             toggleLoading(true);
             const file = files[0];
             const headerLength = currentData[0].length;
             let appendedRowCount = 0;
-
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 const workbook = XLSX.read(arrayBuffer, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 let sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-
                 if (sheetData.length > 1) {
-                    // Remove header row of the appended file
                     const dataRows = sheetData.slice(1);
-
                     const normalizedRows = dataRows.map(row => {
-                        // Normalize row length to match existing table header
-                        if (row.length < headerLength) {
-                            return row.concat(Array(headerLength - row.length).fill(''));
-                        } else if (row.length > headerLength) {
-                            return row.slice(0, headerLength);
-                        }
+                        if (row.length < headerLength) return row.concat(Array(headerLength - row.length).fill(''));
+                        if (row.length > headerLength) return row.slice(0, headerLength);
                         return row;
                     });
-
                     currentData = currentData.concat(normalizedRows);
                     appendedRowCount = normalizedRows.length;
-
                     renderTable();
                     showModal('message-box', 'تم إضافة الملف', `تم إضافة ${appendedRowCount} سطر من ملف ${file.name}.`);
                 } else {
                     showModal('message-box', 'ملف فارغ', `الملف ${file.name} لا يحتوي على بيانات لإضافتها.`);
                 }
-
             } catch (error) {
                 console.error("Append File Error:", error);
                 showModal('message-box', 'فشل الإضافة', `حدث خطأ أثناء معالجة الملف: ${error.message}`);
             } finally {
                 toggleLoading(false);
-                event.target.value = ''; // Reset file input
+                event.target.value = '';
             }
         }
 
-
-        // --- Firestore Persistence Functions (Async and Robust) ---
+        // --- Firestore Persistence Functions ---
 
         async function saveDataToFirestore() {
             if (!window.firebaseReady || !window.userId) {
-                showModal('message-box', 'خطأ في المصادقة', 'خدمات الحفظ غير جاهزة. يرجى الانتظار قليلاً أو محاولة إعادة تحميل الصفحة.');
+                showModal('message-box', 'خطأ في المصادقة', 'خدمات الحفظ غير جاهزة. يرجى الانتظار قليلاً.');
                 return;
             }
             if (currentData.length === 0) {
                 showModal('message-box', 'لا توجد بيانات', 'الجدول الحالي فارغ. لا يمكن حفظ جلسة فارغة.');
                 return;
             }
-
             toggleLoading(true);
             try {
-                // Import Firestore functions dynamically (needed as this is called from the global scope)
                 const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
                 const SHEET_PATH = `artifacts/${window.appId}/users/${window.userId}/sheets/current_sheet`;
-
-                // Use deepClone for safe serialization
-                const dataToSave = JSON.stringify({
-                    data: deepClone(currentData),
-                    originalData: deepClone(originalData),
-                    timestamp: new Date().toISOString()
-                });
-
-                const docRef = doc(window.db, SHEET_PATH);
-                await setDoc(docRef, {
-                    content: dataToSave,
-                    ownerId: window.userId
-                });
-
+                const dataToSave = JSON.stringify({ data: deepClone(currentData), originalData: deepClone(originalData) });
+                await setDoc(doc(window.db, SHEET_PATH), { content: dataToSave, ownerId: window.userId });
                 toggleLoading(false);
                 showModal('message-box', 'تم الحفظ بنجاح', 'تم حفظ الجدول الحالي في مساحة التخزين السحابي الخاصة بك.');
-
             } catch (error) {
                 console.error("Firestore Save Error:", error);
                 toggleLoading(false);
-                showModal('message-box', 'فشل الحفظ', `حدث خطأ أثناء محاولة حفظ البيانات: ${error.message}`);
+                showModal('message-box', 'فشل الحفظ', `حدث خطأ: ${error.message}`);
             }
         }
 
         async function loadDataFromFirestore() {
             if (!window.firebaseReady || !window.userId) {
-                showModal('message-box', 'خطأ في المصادقة', 'خدمات التحميل غير جاهزة. يرجى الانتظار قليلاً أو محاولة إعادة تحميل الصفحة.');
+                showModal('message-box', 'خطأ في المصادقة', 'خدمات التحميل غير جاهزة. يرجى الانتظار قليلاً.');
                 return;
             }
-
             toggleLoading(true);
             try {
                 const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
                 const SHEET_PATH = `artifacts/${window.appId}/users/${window.userId}/sheets/current_sheet`;
-
-                const docRef = doc(window.db, SHEET_PATH);
-                const docSnap = await getDoc(docRef);
-
+                const docSnap = await getDoc(doc(window.db, SHEET_PATH));
                 if (docSnap.exists()) {
                     const savedData = JSON.parse(docSnap.data().content);
                     currentData = savedData.data || [];
                     originalData = savedData.originalData || [];
-
                     loadedFiles = [];
                     fileBuffers = [];
                     document.getElementById('merge-btn').disabled = true;
-
                     renderTable();
                     toggleLoading(false);
                     showModal('message-box', 'تم التحميل بنجاح', 'تم تحميل آخر جلسة عمل محفوظة.');
                 } else {
                     toggleLoading(false);
-                    showModal('message-box', 'لا توجد بيانات', 'لم يتم العثور على أي جلسة عمل محفوظة لهذا المستخدم.');
+                    showModal('message-box', 'لا توجد بيانات', 'لم يتم العثور على أي جلسة عمل محفوظة.');
                 }
-
             } catch (error) {
                 console.error("Firestore Load Error:", error);
                 toggleLoading(false);
-                showModal('message-box', 'فشل التحميل', `حدث خطأ أثناء محاولة تحميل البيانات: ${error.message}`);
+                showModal('message-box', 'فشل التحميل', `حدث خطأ: ${error.message}`);
             }
         }
 
         // --- Modification Functions ---
 
-        // Pre-confirm required for table creation to warn about data loss
         function createNewTablePreconfirm() {
             if (currentData.length > 0) {
                  showModal('create-table-modal');
             } else {
-                createNewTable(); // No data, create immediately
+                createNewTable();
             }
         }
 
@@ -967,21 +1007,14 @@
             hideModal('create-table-modal');
             const cols = parseInt(document.getElementById('new-cols').value) || 4;
             const rows = parseInt(document.getElementById('new-rows').value) || 5;
-
-            // Input validation
             if (cols < 1 || rows < 0) {
-                 showModal('message-box', 'خطأ في الأبعاد', 'الرجاء إدخال أبعاد صالحة (العمود > 0، السطر >= 0).');
+                 showModal('message-box', 'خطأ في الأبعاد', 'الرجاء إدخال أبعاد صالحة.');
                  return;
             }
-
             const newHeaders = Array.from({ length: cols }, (_, i) => `العنوان ${i + 1}`);
             const newTable = [newHeaders];
             const emptyRow = Array(cols).fill('');
-
-            for (let i = 0; i < rows; i++) {
-                newTable.push(emptyRow.slice());
-            }
-
+            for (let i = 0; i < rows; i++) newTable.push(emptyRow.slice());
             currentData = newTable;
             originalData = deepClone(currentData);
             fileBuffers = [];
@@ -995,57 +1028,40 @@
                 return;
             }
             const cols = currentData[0].length;
-            const newRow = Array(cols).fill('');
-            currentData.push(newRow);
+            currentData.push(Array(cols).fill(''));
             renderTable();
             updateChangeReport();
+            playSound('click'); // Add sound for this action
         }
 
-        /**
-         * Filters the table using Array.prototype.filter for performance.
-         */
         function filterTable(mode) {
             if (currentData.length <= 1) {
                 hideModal(mode === 'delete' ? 'delete-match-modal' : 'keep-match-modal');
                 showModal('message-box', 'جدول فارغ', 'لا توجد بيانات للفلترة.');
                 return;
             }
-
-            const keywordElement = document.getElementById(mode === 'delete' ? 'delete-keyword' : 'keep-keyword');
-            const keyword = keywordElement.value.trim();
-
+            const keyword = document.getElementById(mode === 'delete' ? 'delete-keyword' : 'keep-keyword').value.trim();
             if (!keyword) {
                 showModal('message-box', 'حقل مطلوب', 'الرجاء إدخال كلمة أو عبارة مفتاحية.');
                 return;
             }
             hideModal(mode === 'delete' ? 'delete-match-modal' : 'keep-match-modal');
             toggleLoading(true);
-
             const keywordLower = keyword.toLowerCase();
             const headers = currentData[0];
             const rowsToFilter = currentData.slice(1);
             let rowsRemoved = 0;
-
             const filteredRows = rowsToFilter.filter(row => {
                 const containsKeyword = row.some(cell => String(cell).toLowerCase().includes(keywordLower));
-
                 if (mode === 'delete') {
-                    if (containsKeyword) {
-                        rowsRemoved++;
-                        return false; // DELETE mode: return false if match (remove row)
-                    }
-                    return true; // Keep if no match
-                } else { // 'keep' mode
-                    if (!containsKeyword) {
-                        rowsRemoved++;
-                        return false; // KEEP mode: return false if no match (remove row)
-                    }
-                    return true; // Keep if match
+                    if (containsKeyword) { rowsRemoved++; return false; }
+                    return true;
+                } else {
+                    if (!containsKeyword) { rowsRemoved++; return false; }
+                    return true;
                 }
             });
-
             currentData = [headers].concat(filteredRows);
-
             setTimeout(() => {
                 renderTable();
                 toggleLoading(false);
@@ -1053,18 +1069,15 @@
             }, 0);
         }
 
-        // Custom confirmation logic
         function clearTablePreconfirm() {
             if (currentData.length === 0) return;
             showModal('message-box', 'تأكيد مسح الجدول', 'هل أنت متأكد من مسح كافة البيانات؟ هذا الإجراء لا يمكن التراجع عنه.');
-
-            const messageBox = document.getElementById('message-box');
-            const footer = messageBox.querySelector('.mt-6.flex.justify-end');
+            const footer = document.getElementById('message-box').querySelector('.mt-6.flex.justify-end');
             footer.innerHTML = `
-                <button onclick="hideModal('message-box')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 rtl:ml-3 text-sm">
+                <button onclick="playSound('click'); hideModal('message-box')" class="neumorphic-btn text-sm rtl:ml-3">
                     إلغاء
                 </button>
-                <button onclick="performClearTable()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button onclick="playSound('click'); performClearTable()" class="neumorphic-btn danger text-sm">
                     تأكيد المسح
                 </button>
             `;
@@ -1086,19 +1099,15 @@
                 showModal('message-box', 'خطأ في الإدارة', 'الرجاء تحميل جدول أو إنشاء جدول جديد أولاً.');
                 return;
             }
-
             const select = document.getElementById('remove-col-select');
             select.innerHTML = '';
-
             currentData[0].forEach((header, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = `${String(header || `عمود ${index + 1}`).trim()} (العمود ${index + 1})`;
                 select.appendChild(option);
             });
-
             document.getElementById('remove-col-btn').disabled = currentData[0].length === 0;
-
             showModal('manage-columns-modal');
         }
 
@@ -1107,34 +1116,23 @@
                 showModal('message-box', 'خطأ في الإدارة', 'الرجاء تحميل جدول أو إنشاء جدول جديد أولاً.');
                 return;
             }
-
             const newColIndex = currentData[0].length + 1;
             currentData[0].push(`عمود جديد ${newColIndex}`);
-
-            for (let i = 1; i < currentData.length; i++) {
-                currentData[i].push('');
-            }
-
+            for (let i = 1; i < currentData.length; i++) currentData[i].push('');
             renderTable();
-            showModal('message-box', 'عمود جديد', `تم إضافة عمود جديد بنجاح.`);
+            showModal('message-box', 'تم إضافة عمود', `تم إضافة عمود جديد بنجاح.`);
             hideModal('manage-columns-modal');
         }
 
         function performRemoveColumn() {
             const select = document.getElementById('remove-col-select');
             const colIndex = parseInt(select.value);
-
             if (currentData[0].length <= 1) {
                 showModal('message-box', 'خطأ في الحذف', 'يجب أن يحتوي الجدول على عمود واحد على الأقل.');
                 return;
             }
-
             if (colIndex >= 0 && colIndex < currentData[0].length) {
-                // Efficiently remove the column across all rows
-                currentData.forEach(row => {
-                    row.splice(colIndex, 1);
-                });
-
+                currentData.forEach(row => row.splice(colIndex, 1));
                 renderTable();
                 showModal('message-box', 'تم حذف العمود', `تم حذف العمود ${select.options[select.selectedIndex].text} بنجاح.`);
             }
@@ -1148,72 +1146,44 @@
                 showModal('message-box', 'جدول فارغ', 'لا توجد بيانات لإزالة التكرارات منها.');
                 return;
             }
-
             const select = document.getElementById('duplicate-col-select');
             select.innerHTML = '';
-
             currentData[0].forEach((header, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = `${String(header || `عمود ${index + 1}`).trim()} (العمود ${index + 1})`;
                 select.appendChild(option);
             });
-
-            // Handle radio button toggling
             const columnRadio = document.querySelector('input[name="duplicate-mode"][value="column"]');
             const allRadio = document.querySelector('input[name="duplicate-mode"][value="all"]');
-
-            const toggleSelect = () => {
-                select.disabled = allRadio.checked;
-            };
-
+            const toggleSelect = () => { select.disabled = allRadio.checked; };
             columnRadio.onchange = toggleSelect;
             allRadio.onchange = toggleSelect;
-
-            // Set initial state
             toggleSelect();
-
             showModal('remove-duplicates-modal');
         }
 
-        /**
-         * Removes duplicates using a Set for O(N) performance.
-         */
         function removeDuplicates() {
             if (currentData.length <= 1) return;
             hideModal('remove-duplicates-modal');
             toggleLoading(true);
-
             const mode = document.querySelector('input[name="duplicate-mode"]:checked').value;
             const headers = currentData[0];
             const rowsToFilter = currentData.slice(1);
             const uniqueData = [headers];
             const seen = new Set();
             let removedCount = 0;
-
             let colIndex = -1;
             if (mode === 'column') {
                 colIndex = parseInt(document.getElementById('duplicate-col-select').value);
-                // Simple validation check
                 if (isNaN(colIndex) || colIndex < 0 || colIndex >= headers.length) {
                      toggleLoading(false);
-                     showModal('message-box', 'خطأ في العمود', 'الرجاء اختيار عمود صالح للإزالة بناءً عليه.');
+                     showModal('message-box', 'خطأ في العمود', 'الرجاء اختيار عمود صالح.');
                      return;
                 }
             }
-
-            // Loop through data rows (O(N) operation)
             for (const row of rowsToFilter) {
-                let key;
-
-                if (mode === 'all') {
-                    // Create a normalized key from all cells
-                    key = row.map(cell => String(cell).toLowerCase().trim()).join('|');
-                } else if (mode === 'column') {
-                    // Create a normalized key from the selected column's cell
-                    key = String(row[colIndex]).toLowerCase().trim();
-                }
-
+                let key = (mode === 'all') ? row.map(cell => String(cell).toLowerCase().trim()).join('|') : String(row[colIndex]).toLowerCase().trim();
                 if (!seen.has(key)) {
                     seen.add(key);
                     uniqueData.push(row);
@@ -1221,16 +1191,13 @@
                     removedCount++;
                 }
             }
-
             currentData = uniqueData;
-
             setTimeout(() => {
                 renderTable();
                 toggleLoading(false);
-                showModal('message-box', 'تمت إزالة التكرارات', `تمت إزالة ${removedCount} سطر مكرر. إجمالي السطور المتبقية: ${currentData.length - 1}.`);
+                showModal('message-box', 'تمت إزالة التكرارات', `تمت إزالة ${removedCount} سطر مكرر. المتبقي: ${currentData.length - 1}.`);
             }, 0);
         }
-
 
         // --- Download Function ---
 
@@ -1240,48 +1207,34 @@
                 showModal('message-box', 'لا توجد بيانات', 'لا يوجد جدول لتنزيله.');
                 return;
             }
-
             hideModal('download-modal');
             toggleLoading(true);
-
             const filenameInput = document.getElementById('download-filename').value.trim() || 'جدول_معدل';
             const format = document.querySelector('input[name="file-format"]:checked').value;
             let filename = `${filenameInput}.${format}`;
-            let fileContent;
-            let mimeType;
-
+            let fileContent, mimeType;
             try {
-                // Ensure the data array is clean before export
                 const exportData = deepClone(currentData);
                 const ws = XLSX.utils.aoa_to_sheet(exportData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-
                 if (format === 'xlsx') {
                     fileContent = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                     mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
                 } else if (format === 'csv') {
-                    // Use correct CSV encoding for Arabic/UTF-8
-                    fileContent = "\uFEFF" + XLSX.utils.sheet_to_csv(ws, {FS: ',', RS: '\n'});
+                    fileContent = "\uFEFF" + XLSX.utils.sheet_to_csv(ws, {FS: ',', RS: '\n'}); // UTF-8 BOM for Arabic
                     mimeType = 'text/csv;charset=utf-8;';
                 } else if (format === 'json') {
-                    const jsonArr = XLSX.utils.sheet_to_json(ws);
-                    fileContent = JSON.stringify(jsonArr, null, 2);
+                    fileContent = JSON.stringify(XLSX.utils.sheet_to_json(ws), null, 2);
                     mimeType = 'application/json';
                 }
-
                 const blob = new Blob([fileContent], { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                showModal('message-box', 'تم التنزيل بنجاح', `تم تنزيل الملف بنجاح بصيغة ${format.toUpperCase()}.`);
-
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
+                showModal('message-box', 'تم التنزيل بنجاح', `تم تنزيل الملف بصيغة ${format.toUpperCase()}.`);
             } catch (error) {
                 console.error("Download error:", error);
                 showModal('message-box', 'فشل التنزيل', 'حدث خطأ أثناء إنشاء ملف التنزيل.');
@@ -1290,7 +1243,7 @@
             }
         }
 
-        // Initialize table and report on load
+        // Initialize table
         window.onload = () => {
             renderTable();
             updateAppendControls();
@@ -1299,3 +1252,4 @@
     </script>
 </body>
 </html>
+
